@@ -1,0 +1,9 @@
+services:
+  syndicator:
+    build: .
+    container_name: blog-syndicator
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    # Sem "ports": nada é exposto. Todo tráfego é de saída.
