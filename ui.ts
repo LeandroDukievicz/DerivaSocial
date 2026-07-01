@@ -4,7 +4,7 @@ export const PAGE = /* html */ `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blog Syndicator</title>
+<title>DerivaSocial</title>
 <style>
 :root{
   --bg-page:#010212; --bg-deep:#040d1e; --bg-card:#081A3A;
@@ -93,9 +93,9 @@ a{color:var(--cyan-bright);text-decoration:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="logo">BS</div>
+    <div class="logo">DS</div>
     <div class="brand">
-      <h1>Blog Syndicator</h1>
+      <h1>DerivaSocial</h1>
       <p id="rssline">devsaderiva.com.br</p>
     </div>
     <div class="spacer"></div>

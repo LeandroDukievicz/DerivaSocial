@@ -1,4 +1,4 @@
-# Blog Syndicator 📣
+# DerivaSocial 📣
 
 App **desktop** (feito com [`deno desktop`](https://docs.deno.com/runtime/desktop/)) que acompanha os posts do
 blog e — nas próximas fases — publica automaticamente nas redes sociais (Threads, Instagram, LinkedIn), com
@@ -16,7 +16,9 @@ deno task start        # abre em http://localhost:8000
 ## Empacotar como app desktop (.exe / .AppImage / .dmg)
 
 ```bash
-deno task desktop      # gera dist/BlogSyndicator (backend webview)
+deno task build:linux  # gera dist/DerivaSocial-linux
+deno task build:win    # gera dist/DerivaSocial-win
+deno task build:all    # gera Linux + Windows
 ```
 
 ## Milestones

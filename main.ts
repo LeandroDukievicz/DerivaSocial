@@ -1,4 +1,4 @@
-// Blog Syndicator — app desktop (deno desktop) / servidor local (Deno.serve)
+// DerivaSocial — app desktop (deno desktop) / servidor local (Deno.serve)
 import { getPosts, getStats, refreshPosts } from "./store.ts";
 import { PAGE } from "./ui.ts";
 
@@ -31,5 +31,5 @@ try {
 
 // Sem porta fixa: standalone usa 8000; no modo desktop, Deno.serve liga na porta da janela.
 Deno.serve({
-  onListen: ({ port }) => console.log(`▶ Blog Syndicator ativo (porta ${port})`),
+  onListen: ({ port }) => console.log(`▶ DerivaSocial ativo (porta ${port})`),
 }, handler);
