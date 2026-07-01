@@ -1,47 +1,103 @@
 # DerivaSocial 📣
 
-App **desktop** (feito com [`deno desktop`](https://docs.deno.com/runtime/desktop/)) que acompanha os posts do
-blog e — nas próximas fases — publica automaticamente nas redes sociais (Threads, Instagram, LinkedIn), com
-dashboard, métricas e referral.
+App **desktop** que acompanha os posts do blog [Devs à Deriva](https://devsaderiva.com.br) e — nas próximas fases — publica automaticamente nas redes sociais (**Threads, Instagram, LinkedIn**), com dashboard, métricas e referral.
 
-Visual no estilo **dark/neon do LD Studio**.
+Visual no estilo **dark/neon do dashboard LD Studio**.
 
-## Rodar (dev, no navegador)
+---
+
+## 🧱 Stack
+
+- **[Electron](https://www.electronjs.org/)** + **[electron-builder](https://www.electron.build/)** — app instalável real (`.exe` no Windows, `.AppImage`/`.deb` no Linux), com assinatura e auto-update maduros. É o mesmo motor do VS Code.
+- **TypeScript** no _main process_ (backend) → compilado com `tsc` para `dist/`.
+- **HTML/CSS/JS puro** no _renderer_ (a UI), sem framework.
+- **Sem dependências de runtime pesadas**: parser de RSS próprio (regex), persistência em JSON, `fetch` nativo do Node.
+
+### Por que Electron (e não `deno desktop`)
+
+O projeto começou em `deno desktop`, mas ele é **experimental** (lançado em jun/2026, marcado como pré-estável): gera `.AppImage` quebrado, não produz `.exe`/`.msi` único no Windows e a config muda a cada versão. Para termos **instaladores de verdade** agora, migramos para o Electron, que é maduro e tem o melhor ferramental de empacotamento. O _miolo_ (UI + lógica de RSS) foi reaproveitado quase 100%.
+
+---
+
+## 🏗️ Arquitetura
+
+```
+Electron (app .exe / .AppImage)
+├── main process  (src/main.ts)      → janela + agendador (poll horário) + IPC
+│   ├── src/store.ts                 → ingestão do RSS + persistência (JSON em userData)
+│   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
+└── renderer      (renderer/index.html) → dashboard neon (lista novo/publicado)
+        chama o backend via  window.api.getPosts() / getStats() / refresh()
+```
+
+- **Sem servidor HTTP:** o renderer fala com o backend por **IPC** (`contextIsolation` ligado, sem `nodeIntegration` — seguro).
+- **Poll horário:** o main faz `refreshPosts()` ao abrir e a cada 1h (`setInterval`).
+- **Dados:** salvos em `app.getPath("userData")/posts.json` (dedup por `guid` do RSS — nunca duplica).
+
+---
+
+## ▶️ Rodar em desenvolvimento
 
 ```bash
-deno task start        # abre em http://localhost:8000
-# ou: deno task dev    # com --watch
+npm install
+npm start        # compila (tsc) e abre o app Electron
 ```
 
-## Empacotar como app desktop (.exe / .AppImage / .dmg)
+---
+
+## 📦 Gerar instaladores
 
 ```bash
-deno task build:linux  # gera dist/DerivaSocial-linux
-deno task build:win    # gera dist/DerivaSocial-win
-deno task build:all    # gera Linux + Windows
+npm run dist:linux   # → release/DerivaSocial-*.AppImage  e  *.deb
+npm run dist:win     # → release/DerivaSocial Setup *.exe (instalador NSIS)
+npm run dist         # ambos (linux + windows)
 ```
 
-## Milestones
+### Rodar no Linux (recomendado: `.deb`)
 
-|        | Entrega                                                                                         | Status            |
-| ------ | ----------------------------------------------------------------------------------------------- | ----------------- |
-| **M0** | App abre + dashboard lista posts do blog (novo/publicado) + sincronização horária (`Deno.cron`) | ✅ atual          |
-| **M1** | Publicar nas 3 redes (Threads, Instagram, LinkedIn)                                             | credenciais/apps  |
-| **M2** | Métricas: comentários                                                                           | —                 |
-| **M3** | Referral: visitas vindas das redes                                                              | analytics do blog |
-
-## Estrutura
-
+```bash
+sudo apt install ./release/derivasocial_0.1.0_amd64.deb   # instala no menu; abre no duplo-clique
 ```
-main.ts    # servidor (Deno.serve) + rotas de API + agendador (Deno.cron)
-store.ts   # ingestão do RSS + persistência (JSON em ./data)
-ui.ts      # dashboard (HTML/CSS/JS, tema neon LD Studio)
-assets/    # ícone oficial do DerivaSocial em PNG/ICO
-deno.json  # tasks + config do deno desktop
+O `.deb` configura o sandbox do Chromium corretamente — abre sem flags.
+
+**Alternativa `.AppImage`:** precisa da lib FUSE2 uma única vez —
+```bash
+sudo apt install libfuse2      # depois é só dar duplo-clique no .AppImage
+# ou, sem instalar nada:
+./release/DerivaSocial-0.1.0.AppImage --appimage-extract-and-run
 ```
 
-## Config (env, opcional)
+> **Cross-compile:** o `.exe` (Windows) pode ser gerado a partir do Linux (`npm run dist:win`); alguns alvos baixam ferramentas do `electron-builder` na primeira execução.
+>
+> **Dev (`npm start`)** usa `--no-sandbox` porque o binário do Electron em `node_modules` não tem o sandbox SUID configurado (o `.deb` instalado tem, então lá não precisa).
 
-- `RSS_URL` (padrão `https://devsaderiva.com.br/rss.xml`)
-- `PORT` (padrão `8000`, ignorado no modo desktop)
-- `DATA_DIR` (padrão `./data`)
+---
+
+## 🗺️ Milestones
+
+| | Entrega | Precisa de |
+|---|---|---|
+| **M0** | App abre + dashboard lista posts do blog (novo/publicado) + sincronização horária | ✅ atual |
+| **M1** | Publicar nas 3 redes (Threads, Instagram, LinkedIn) | apps/tokens das redes |
+| **M2** | Métricas: comentários | — |
+| **M3** | Referral: visitas vindas das redes | analytics do blog |
+
+---
+
+## 📁 Estrutura
+
+```
+src/
+  main.ts        # Electron main: janela, IPC, agendador (poll horário)
+  preload.ts     # contextBridge (window.api)
+  store.ts       # RSS (parser próprio) + persistência JSON
+renderer/
+  index.html     # dashboard (tema neon LD Studio) — usa window.api
+assets/          # ícones do app (derivasocial.ico / .png em vários tamanhos)
+dist/            # saída do tsc (gitignored)
+release/         # instaladores gerados pelo electron-builder (gitignored)
+```
+
+## ⚙️ Config (env, opcional)
+
+- `RSS_URL` — padrão `https://devsaderiva.com.br/rss.xml`

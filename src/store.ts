@@ -1,7 +1,8 @@
-// Estado e ingestão de posts do blog (via RSS). M0: persistência em JSON.
-const RSS_URL = Deno.env.get("RSS_URL") ?? "https://devsaderiva.com.br/rss.xml";
-const DATA_DIR = Deno.env.get("DATA_DIR") ?? "./data";
-const FILE = `${DATA_DIR}/posts.json`;
+// Ingestão de posts do blog (via RSS) + persistência em JSON. Roda no main process (Node).
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
+
+const RSS_URL = process.env.RSS_URL ?? "https://devsaderiva.com.br/rss.xml";
 
 export type Status = "novo" | "publicado" | "ignorado";
 
@@ -18,17 +19,24 @@ export interface Post {
   networks: Record<string, { status: string; url?: string }>;
 }
 
+// Definido pelo main via init() para gravar em app.getPath("userData").
+let dataFile = path.join(process.cwd(), "data", "posts.json");
+
+export function init(dataDir: string): void {
+  dataFile = path.join(dataDir, "posts.json");
+}
+
 async function load(): Promise<Record<string, Post>> {
   try {
-    return JSON.parse(await Deno.readTextFile(FILE));
+    return JSON.parse(await fs.readFile(dataFile, "utf8"));
   } catch {
     return {};
   }
 }
 
 async function save(data: Record<string, Post>): Promise<void> {
-  await Deno.mkdir(DATA_DIR, { recursive: true });
-  await Deno.writeTextFile(FILE, JSON.stringify(data, null, 2));
+  await fs.mkdir(path.dirname(dataFile), { recursive: true });
+  await fs.writeFile(dataFile, JSON.stringify(data, null, 2));
 }
 
 export async function getPosts(): Promise<Post[]> {
@@ -47,7 +55,7 @@ export async function getStats() {
 
 /** Bate no RSS, registra posts novos (dedup por guid). Retorna quantos novos. */
 export async function refreshPosts(): Promise<number> {
-  const res = await fetch(RSS_URL, { headers: { "user-agent": "DerivaSocial" } });
+  const res = await fetch(RSS_URL, { headers: { "user-agent": "derivasocial" } });
   if (!res.ok) throw new Error(`RSS HTTP ${res.status}`);
   const xml = await res.text();
   const items = extractItems(xml);

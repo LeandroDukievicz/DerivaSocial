@@ -1,0 +1,43 @@
+{
+  "name": "derivasocial",
+  "version": "0.1.0",
+  "description": "DerivaSocial — app desktop que acompanha o blog Devs à Deriva e publica nas redes sociais.",
+  "author": "Leandro Dukievicz",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron . --no-sandbox",
+    "dev": "npm run build && electron . --no-sandbox",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist": "npm run build && electron-builder -lw"
+  },
+  "devDependencies": {
+    "electron": "*",
+    "electron-builder": "*",
+    "typescript": "*"
+  },
+  "build": {
+    "appId": "com.derivasocial.app",
+    "productName": "DerivaSocial",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "renderer/**/*", "assets/**/*", "package.json"],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/derivasocial.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/derivasocial-512.png",
+      "category": "Utility",
+      "maintainer": "Leandro Dukievicz"
+    }
+  }
+}

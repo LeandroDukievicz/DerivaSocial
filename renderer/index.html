@@ -1,12 +1,10 @@
-// UI do dashboard — tema dark/neon inspirado no LD Studio.
-export const PAGE = /* html */ `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DerivaSocial</title>
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" href="/assets/derivasocial.png" type="image/png">
 <style>
 :root{
   --bg-page:#010212; --bg-deep:#040d1e; --bg-card:#081A3A;
@@ -28,16 +26,15 @@ body{
     radial-gradient(600px 500px at 50% 120%, rgba(204,0,255,.07), transparent 55%),
     var(--bg-page);
   color:var(--txt); font-family:var(--sans); font-size:15px; line-height:1.55;
-  -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:antialiased; user-select:none;
 }
 a{color:var(--cyan-bright);text-decoration:none}
 .wrap{max-width:1080px;margin:0 auto;padding:26px 22px 70px}
 
 /* Header */
 .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
-.logo{width:44px;height:44px;border-radius:12px;object-fit:cover;
-  box-shadow:0 0 20px rgba(0,255,255,.35),0 0 30px rgba(255,0,204,.25);
-  border:1px solid var(--line2)}
+.logo{width:40px;height:40px;border-radius:11px;background:var(--grad);display:grid;place-items:center;
+  font-weight:900;color:#02121f;font-family:var(--mono);box-shadow:0 0 20px rgba(0,255,255,.35),0 0 30px rgba(255,0,204,.25)}
 .brand h1{margin:0;font-size:1.28rem;letter-spacing:.3px;
   background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .brand p{margin:1px 0 0;font-size:.78rem;color:var(--muted);font-family:var(--mono)}
@@ -96,7 +93,7 @@ a{color:var(--cyan-bright);text-decoration:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <img class="logo" src="/assets/derivasocial.png" alt="DerivaSocial">
+    <div class="logo">DS</div>
     <div class="brand">
       <h1>DerivaSocial</h1>
       <p id="rssline">devsaderiva.com.br</p>
@@ -118,37 +115,34 @@ a{color:var(--cyan-bright);text-decoration:none}
 </div>
 
 <script>
-const REDES = ["threads","instagram","linkedin"];
-const fmtDate = (s) => { if(!s) return ""; const d=new Date(s); return isNaN(d)?"":d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}); };
-const esc = (s) => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const REDES = ["threads", "instagram", "linkedin"];
+const fmtDate = (s) => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); };
+const esc = (s) => (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function card(p){
+function card(p) {
   const thumb = p.image
-    ? '<img class="thumb" src="'+esc(p.image)+'" alt="" loading="lazy">'
+    ? '<img class="thumb" src="' + esc(p.image) + '" alt="" loading="lazy">'
     : '<div class="thumb ph">sem imagem</div>';
-  const chips = REDES.map(r=>{
+  const chips = REDES.map((r) => {
     const st = p.networks && p.networks[r];
-    const ok = st && st.status==="published";
-    return '<span class="chip '+(ok?"ok":"pend")+'"><span class="dot"></span>'+r+'</span>';
+    const ok = st && st.status === "published";
+    return '<span class="chip ' + (ok ? "ok" : "pend") + '"><span class="dot"></span>' + r + "</span>";
   }).join("");
-  return '<div class="card">'+thumb+
-    '<div class="info">'+
-      '<div class="t">'+esc(p.title)+'</div>'+
-      '<div class="meta"><span>'+fmtDate(p.publishedAt||p.discoveredAt)+'</span>'+(p.category?'<span>#'+esc(p.category)+'</span>':'')+'</div>'+
-      '<div class="chips">'+chips+'</div>'+
-    '</div>'+
-    '<div class="side">'+
-      '<span class="status '+p.status+'">'+p.status+'</span>'+
-      '<button class="btn" disabled title="chega no M1">Publicar</button>'+
-    '</div>'+
-  '</div>';
+  return '<div class="card">' + thumb +
+    '<div class="info">' +
+      '<div class="t">' + esc(p.title) + "</div>" +
+      '<div class="meta"><span>' + fmtDate(p.publishedAt || p.discoveredAt) + "</span>" + (p.category ? '<span>#' + esc(p.category) + "</span>" : "") + "</div>" +
+      '<div class="chips">' + chips + "</div>" +
+    "</div>" +
+    '<div class="side">' +
+      '<span class="status ' + p.status + '">' + p.status + "</span>" +
+      '<button class="btn" disabled title="chega no M1">Publicar</button>' +
+    "</div>" +
+  "</div>";
 }
 
-async function render(){
-  const [posts, stats] = await Promise.all([
-    fetch("/api/posts").then(r=>r.json()),
-    fetch("/api/stats").then(r=>r.json()),
-  ]);
+async function render() {
+  const [posts, stats] = await Promise.all([window.api.getPosts(), window.api.getStats()]);
   document.getElementById("s-total").textContent = stats.total;
   document.getElementById("s-novos").textContent = stats.novos;
   document.getElementById("s-pub").textContent = stats.publicados;
@@ -156,13 +150,14 @@ async function render(){
   list.innerHTML = posts.length ? posts.map(card).join("") : '<div class="empty">nenhum post ainda</div>';
 }
 
-document.getElementById("refresh").addEventListener("click", async (e)=>{
-  const b=e.target; b.disabled=true; b.textContent="↻ atualizando…";
-  try{ await fetch("/api/refresh",{method:"POST"}); await render(); }
-  finally{ b.disabled=false; b.textContent="↻ Atualizar agora"; }
+document.getElementById("refresh").addEventListener("click", async (e) => {
+  const b = e.target;
+  b.disabled = true; b.textContent = "↻ atualizando…";
+  try { await window.api.refresh(); await render(); }
+  finally { b.disabled = false; b.textContent = "↻ Atualizar agora"; }
 });
 
 render();
 </script>
 </body>
-</html>`;
+</html>
