@@ -47,7 +47,7 @@ export async function getStats() {
 
 /** Bate no RSS, registra posts novos (dedup por guid). Retorna quantos novos. */
 export async function refreshPosts(): Promise<number> {
-  const res = await fetch(RSS_URL, { headers: { "user-agent": "blog-syndicator" } });
+  const res = await fetch(RSS_URL, { headers: { "user-agent": "DerivaSocial" } });
   if (!res.ok) throw new Error(`RSS HTTP ${res.status}`);
   const xml = await res.text();
   const items = extractItems(xml);
