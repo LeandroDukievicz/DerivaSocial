@@ -2,8 +2,6 @@
 import { getPosts, getStats, refreshPosts } from "./store.ts";
 import { PAGE } from "./ui.ts";
 
-const PORT = Number(Deno.env.get("PORT") ?? 8000);
-
 async function handler(req: Request): Promise<Response> {
   const { pathname } = new URL(req.url);
   try {
@@ -31,5 +29,7 @@ try {
   // Deno.cron pode não estar disponível em todos os contextos
 }
 
-console.log(`▶ Blog Syndicator: http://localhost:${PORT}`);
-Deno.serve({ port: PORT }, handler);
+// Sem porta fixa: standalone usa 8000; no modo desktop, Deno.serve liga na porta da janela.
+Deno.serve({
+  onListen: ({ port }) => console.log(`▶ Blog Syndicator ativo (porta ${port})`),
+}, handler);

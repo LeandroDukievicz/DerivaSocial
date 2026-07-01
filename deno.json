@@ -2,11 +2,9 @@
   "tasks": {
     "start": "deno run -A main.ts",
     "dev": "deno run -A --watch main.ts",
-    "desktop": "deno desktop --backend webview --output dist/BlogSyndicator main.ts"
-  },
-  "desktop": {
-    "name": "Blog Syndicator",
-    "window": { "title": "Blog Syndicator", "width": 1100, "height": 760 }
+    "desktop": "deno desktop --backend webview -A --output dist/BlogSyndicator main.ts",
+    "build:linux": "deno desktop --backend webview -A --target x86_64-unknown-linux-gnu --output dist/BlogSyndicator-linux main.ts",
+    "build:win": "deno desktop --backend webview -A --target x86_64-pc-windows-msvc --output dist/BlogSyndicator-win.exe main.ts"
   },
   "fmt": { "lineWidth": 110 },
   "lock": false
