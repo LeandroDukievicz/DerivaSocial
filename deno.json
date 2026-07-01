@@ -2,8 +2,8 @@
   "tasks": {
     "start": "deno run -A main.ts",
     "dev": "deno run -A --watch main.ts",
-    "build:linux": "deno desktop --backend webview -A --target x86_64-unknown-linux-gnu --output dist/DerivaSocial-linux main.ts",
-    "build:win": "deno desktop --backend webview -A --target x86_64-pc-windows-msvc --output dist/DerivaSocial-win main.ts",
+    "build:linux": "deno desktop --backend webview -A --target x86_64-unknown-linux-gnu --icon assets/derivasocial-512.png --include assets --output dist/DerivaSocial-linux main.ts",
+    "build:win": "deno desktop --backend webview -A --target x86_64-pc-windows-msvc --icon assets/derivasocial.ico --include assets --output dist/DerivaSocial-win main.ts",
     "build:all": "deno task build:linux && deno task build:win"
   },
   "fmt": { "lineWidth": 110 },

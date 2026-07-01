@@ -5,6 +5,8 @@ export const PAGE = /* html */ `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DerivaSocial</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/assets/derivasocial.png" type="image/png">
 <style>
 :root{
   --bg-page:#010212; --bg-deep:#040d1e; --bg-card:#081A3A;
@@ -33,8 +35,9 @@ a{color:var(--cyan-bright);text-decoration:none}
 
 /* Header */
 .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
-.logo{width:40px;height:40px;border-radius:11px;background:var(--grad);display:grid;place-items:center;
-  font-weight:900;color:#02121f;font-family:var(--mono);box-shadow:0 0 20px rgba(0,255,255,.35),0 0 30px rgba(255,0,204,.25)}
+.logo{width:44px;height:44px;border-radius:12px;object-fit:cover;
+  box-shadow:0 0 20px rgba(0,255,255,.35),0 0 30px rgba(255,0,204,.25);
+  border:1px solid var(--line2)}
 .brand h1{margin:0;font-size:1.28rem;letter-spacing:.3px;
   background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .brand p{margin:1px 0 0;font-size:.78rem;color:var(--muted);font-family:var(--mono)}
@@ -93,7 +96,7 @@ a{color:var(--cyan-bright);text-decoration:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="logo">DS</div>
+    <img class="logo" src="/assets/derivasocial.png" alt="DerivaSocial">
     <div class="brand">
       <h1>DerivaSocial</h1>
       <p id="rssline">devsaderiva.com.br</p>

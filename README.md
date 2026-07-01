@@ -36,6 +36,7 @@ deno task build:all    # gera Linux + Windows
 main.ts    # servidor (Deno.serve) + rotas de API + agendador (Deno.cron)
 store.ts   # ingestão do RSS + persistência (JSON em ./data)
 ui.ts      # dashboard (HTML/CSS/JS, tema neon LD Studio)
+assets/    # ícone oficial do DerivaSocial em PNG/ICO
 deno.json  # tasks + config do deno desktop
 ```
 

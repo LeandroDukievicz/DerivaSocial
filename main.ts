@@ -2,9 +2,21 @@
 import { getPosts, getStats, refreshPosts } from "./store.ts";
 import { PAGE } from "./ui.ts";
 
+async function asset(path: string, contentType: string): Promise<Response> {
+  const body = await Deno.readFile(path);
+  return new Response(body, {
+    headers: {
+      "content-type": contentType,
+      "cache-control": "public, max-age=31536000, immutable",
+    },
+  });
+}
+
 async function handler(req: Request): Promise<Response> {
   const { pathname } = new URL(req.url);
   try {
+    if (pathname === "/favicon.ico") return asset("./assets/derivasocial.ico", "image/x-icon");
+    if (pathname === "/assets/derivasocial.png") return asset("./assets/derivasocial-256.png", "image/png");
     if (pathname === "/api/posts") return Response.json(await getPosts());
     if (pathname === "/api/stats") return Response.json(await getStats());
     if (pathname === "/api/refresh" && req.method === "POST") {
