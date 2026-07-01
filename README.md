@@ -1,111 +1,44 @@
 # Blog Syndicator 📣
 
-Detecta **posts novos no RSS do blog**, gera automaticamente uma **copy adaptada para cada rede social** com IA (Claude) e **publica** — com uma etapa de **aprovação no Telegram** (você recebe a prévia e libera com um botão).
+App **desktop** (feito com [`deno desktop`](https://docs.deno.com/runtime/desktop/)) que acompanha os posts do
+blog e — nas próximas fases — publica automaticamente nas redes sociais (Threads, Instagram, LinkedIn), com
+dashboard, métricas e referral.
 
-> Padrão **POSSE** (*Publish on your Own Site, Syndicate Elsewhere*): o blog é a fonte da verdade; as redes são réplicas automáticas.
+Visual no estilo **dark/neon do LD Studio**.
 
----
-
-## Como funciona
-
-```
-RSS (/rss.xml)  →  detecta guid novo  →  Claude gera 1 texto por rede
-                                              │
-                     Telegram: prévia + [✅ Publicar] [❌ Descartar]
-                                              │  (edição: mande "rede: novo texto")
-                                              ▼
-        Mastodon · Bluesky · Telegram   (Fase 1)
-        LinkedIn · Instagram · Threads · Facebook   (Fase 2)
-                                              │
-                           estado salvo em data/state.json (anti-duplicação)
-```
-
-- **Sem portas expostas.** Tudo é tráfego de saída (lê o RSS, chama as APIs, e usa *long-polling* do Telegram pra receber os cliques). Não precisa mexer em firewall/Caddy.
-- **Não republica o acervo.** Na primeira execução, todos os posts existentes são marcados como "baseline"; só posts **novos** dali pra frente são divulgados.
-- **Idempotente.** Cada post é identificado pelo `guid` do RSS; nunca posta duas vezes.
-
----
-
-## ✅ Credenciais necessárias (Fase 1)
-
-Preencha o `.env` (copie de `.env.example`). Junte estes itens:
-
-| Item | Onde pegar |
-|---|---|
-| `ANTHROPIC_API_KEY` | <https://console.anthropic.com> → API Keys. **É separado** da assinatura do Claude Code. |
-| `TELEGRAM_BOT_TOKEN` | Fale com **@BotFather** → `/newbot` → copie o token. Depois dê `/start` no seu bot. |
-| `TELEGRAM_ADMIN_CHAT_ID` | Fale com **@userinfobot** → ele te dá seu `id` numérico. |
-| `TELEGRAM_CHANNEL_ID` | O @ do seu canal (ex.: `@devsaderiva`). **Adicione o bot como administrador do canal.** |
-| `MASTODON_INSTANCE` + `MASTODON_TOKEN` | Na sua instância: Preferências → Desenvolvimento → Nova aplicação → escopo `write:statuses` → copie o *token de acesso*. |
-| `BLUESKY_IDENTIFIER` + `BLUESKY_APP_PASSWORD` | Bluesky → Configurações → **App Passwords** → criar (nunca use a senha principal). O identifier é o handle, ex.: `devsaderiva.bsky.social`. |
-
-> Se ainda não tem conta no Mastodon/Bluesky, crie antes. Comece só com as que já tiver — ajuste `ENABLED_NETWORKS` no `.env`.
-
----
-
-## Rodar localmente (teste)
+## Rodar (dev, no navegador)
 
 ```bash
-cp .env.example .env      # e preencha
-npm install
-npm start
+deno task start        # abre em http://localhost:8000
+# ou: deno task dev    # com --watch
 ```
 
-Na primeira vez ele marca o baseline e te manda uma mensagem no Telegram. Para testar o fluxo completo, publique um post novo no blog (ou espere o próximo) — em até `POLL_INTERVAL_MINUTES` você recebe a prévia para aprovar.
-
----
-
-## Rodar no VPS (produção, com Docker)
+## Empacotar como app desktop (.exe / .AppImage / .dmg)
 
 ```bash
-# no servidor, dentro da pasta do projeto:
-cp .env.example .env      # e preencha
-docker compose up -d --build
-docker compose logs -f    # acompanhar
+deno task desktop      # gera dist/BlogSyndicator (backend webview)
 ```
 
-O container fica em `restart: unless-stopped` e o estado persiste em `./data`.
+## Milestones
 
----
-
-## Fluxo de aprovação (Telegram)
-
-Quando sai um post novo, você recebe uma mensagem com a prévia de cada rede e dois botões:
-
-- **✅ Publicar** → posta em todas as redes habilitadas e te devolve o resultado (com links).
-- **❌ Descartar** → ignora este post.
-- **Editar** → responda no chat com `rede: novo texto` (ex.: `bluesky: minha versão melhor aqui`). Ele atualiza aquele draft e reenvia a prévia.
-
-Para publicar **sem aprovação**, defina `APPROVAL_REQUIRED=false` no `.env`.
-
----
-
-## Roadmap — Fase 2 (redes com burocracia)
-
-Cada uma exige criar um app de desenvolvedor e/ou conta *Business*; a implementação entra em `src/publishers.ts` (já há stubs):
-
-- **LinkedIn** — app + OAuth (`w_member_social` ou página de empresa).
-- **Facebook / Instagram / Threads** — Meta Graph API, conta Business ligada a uma Página. O Instagram exige **imagem** (já temos: o `enclosure` do RSS traz a capa do post).
-
----
-
-## Custo
-
-- **IA (API do Claude):** cobrada **por token, à parte da assinatura do Claude Code/Pro/Max** — precisa de créditos próprios em <https://console.anthropic.com>. Cada post = ~1 chamada curta. Com o padrão `claude-sonnet-4-6`, o custo real fica em **centavos por post** (~R$ 1/mês postando ~8×/mês). Troque via `LLM_MODEL`: `claude-haiku-4-5` (mais barato) ou `claude-opus-4-8` (melhor). O `max_tokens` está limitado a 1500, o que trava o teto de custo por chamada.
-- **Redes Fase 1:** grátis.
-- **Infra:** imagem Docker ~55MB de acréscimo na VPS (base alpine reaproveitada); estado (`state.json`) < 1MB; logs limitados a ~30MB (rotação).
-
-> 📄 Para o passo a passo completo (do zero ao ar), veja **[documentacao.md](documentacao.md)**.
+|        | Entrega                                                                                         | Status            |
+| ------ | ----------------------------------------------------------------------------------------------- | ----------------- |
+| **M0** | App abre + dashboard lista posts do blog (novo/publicado) + sincronização horária (`Deno.cron`) | ✅ atual          |
+| **M1** | Publicar nas 3 redes (Threads, Instagram, LinkedIn)                                             | credenciais/apps  |
+| **M2** | Métricas: comentários                                                                           | —                 |
+| **M3** | Referral: visitas vindas das redes                                                              | analytics do blog |
 
 ## Estrutura
 
 ```
-src/
-  config.ts       # env + limites por rede + validação
-  state.ts        # persistência em data/state.json (anti-duplicação)
-  rss.ts          # busca e parsing do feed
-  llm.ts          # gera a copy por rede (Claude)
-  publishers.ts   # Mastodon, Bluesky, Telegram (+ stubs Fase 2)
-  telegram.ts     # bot de aprovação (envio + long-polling dos botões)
-  index.ts        # orquestrador (poll do RSS + loop de aprovação)
+main.ts    # servidor (Deno.serve) + rotas de API + agendador (Deno.cron)
+store.ts   # ingestão do RSS + persistência (JSON em ./data)
+ui.ts      # dashboard (HTML/CSS/JS, tema neon LD Studio)
+deno.json  # tasks + config do deno desktop
 ```
+
+## Config (env, opcional)
+
+- `RSS_URL` (padrão `https://devsaderiva.com.br/rss.xml`)
+- `PORT` (padrão `8000`, ignorado no modo desktop)
+- `DATA_DIR` (padrão `./data`)

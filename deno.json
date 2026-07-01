@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "start": "deno run -A main.ts",
+    "dev": "deno run -A --watch main.ts",
+    "desktop": "deno desktop --backend webview --output dist/BlogSyndicator main.ts"
+  },
+  "desktop": {
+    "name": "Blog Syndicator",
+    "window": { "title": "Blog Syndicator", "width": 1100, "height": 760 }
+  },
+  "fmt": { "lineWidth": 110 },
+  "lock": false
+}
