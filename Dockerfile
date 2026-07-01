@@ -1,4 +1,5 @@
-FROM node:22-slim
+# alpine: base pequena e já presente na VPS (reaproveita a camada existente ~230MB)
+FROM node:22-alpine
 
 WORKDIR /app
 

@@ -91,8 +91,11 @@ Cada uma exige criar um app de desenvolvedor e/ou conta *Business*; a implementa
 
 ## Custo
 
-- **IA:** cada post gera ~1 chamada curta ao Claude (centavos). `claude-sonnet-4-6` equilibra custo/qualidade; troque para `claude-haiku-4-5` (mais barato) ou `claude-opus-4-8` (melhor) via `LLM_MODEL`.
+- **IA (API do Claude):** cobrada **por token, à parte da assinatura do Claude Code/Pro/Max** — precisa de créditos próprios em <https://console.anthropic.com>. Cada post = ~1 chamada curta. Com o padrão `claude-sonnet-4-6`, o custo real fica em **centavos por post** (~R$ 1/mês postando ~8×/mês). Troque via `LLM_MODEL`: `claude-haiku-4-5` (mais barato) ou `claude-opus-4-8` (melhor). O `max_tokens` está limitado a 1500, o que trava o teto de custo por chamada.
 - **Redes Fase 1:** grátis.
+- **Infra:** imagem Docker ~55MB de acréscimo na VPS (base alpine reaproveitada); estado (`state.json`) < 1MB; logs limitados a ~30MB (rotação).
+
+> 📄 Para o passo a passo completo (do zero ao ar), veja **[documentacao.md](documentacao.md)**.
 
 ## Estrutura
 
