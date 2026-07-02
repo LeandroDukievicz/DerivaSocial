@@ -1,4 +1,4 @@
-# DerivaSocial 📣
+# DerivaSocial
 
 App **desktop** que acompanha os posts do blog [Devs à Deriva](https://devsaderiva.com.br) e — nas próximas fases — publica automaticamente nas redes sociais (**Threads, Instagram, LinkedIn**), com dashboard, métricas e referral.
 
@@ -6,7 +6,7 @@ Visual no estilo **dark/neon do dashboard LD Studio**.
 
 ---
 
-## 🧱 Stack
+## Stack
 
 - **[Electron](https://www.electronjs.org/)** + **[electron-builder](https://www.electron.build/)** — app instalável real (`.exe` no Windows, `.AppImage`/`.deb` no Linux), com assinatura e auto-update maduros. É o mesmo motor do VS Code.
 - **TypeScript** no _main process_ (backend) → compilado com `tsc` para `dist/`.
@@ -19,7 +19,7 @@ O projeto começou em `deno desktop`, mas ele é **experimental** (lançado em j
 
 ---
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 ```
 Electron (app .exe / .AppImage)
@@ -36,7 +36,7 @@ Electron (app .exe / .AppImage)
 
 ---
 
-## ▶️ Rodar em desenvolvimento
+## Rodar em desenvolvimento
 
 ```bash
 npm install
@@ -45,7 +45,7 @@ npm start        # compila (tsc) e abre o app Electron
 
 ---
 
-## 📦 Gerar instaladores
+## Gerar instaladores
 
 ```bash
 npm run dist:linux   # → release/DerivaSocial-*.AppImage  e  *.deb
@@ -80,18 +80,18 @@ sudo apt install libfuse2      # depois é só dar duplo-clique no .AppImage
 
 ---
 
-## 🗺️ Milestones
+## Milestones
 
 | | Entrega | Precisa de |
 |---|---|---|
-| **M0** | App abre + dashboard lista posts do blog (novo/publicado) + sincronização horária | ✅ atual |
+| **M0** | App abre + dashboard lista posts do blog (novo/publicado) + sincronização horária | atual |
 | **M1** | Publicar nas 3 redes (Threads, Instagram, LinkedIn) | apps/tokens das redes |
 | **M2** | Métricas: comentários | — |
 | **M3** | Referral: visitas vindas das redes | analytics do blog |
 
 ---
 
-## 📁 Estrutura
+## Estrutura
 
 ```
 src/
@@ -105,6 +105,6 @@ dist/            # saída do tsc (gitignored)
 release/         # instaladores gerados pelo electron-builder (gitignored)
 ```
 
-## ⚙️ Config (env, opcional)
+## Config (env, opcional)
 
 - `RSS_URL` — padrão `https://devsaderiva.com.br/rss.xml`
