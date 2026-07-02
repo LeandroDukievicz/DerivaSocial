@@ -7,7 +7,7 @@ const HORA_MS = 60 * 60 * 1000;
 let win: BrowserWindow | null = null;
 
 function iconPath(): string {
-  const file = process.platform === "win32" ? "derivasocial.ico" : "derivasocial-256.png";
+  const file = process.platform === "win32" ? "derivasocialicone.ico" : "derivasocialicone-256.png";
   return path.join(app.getAppPath(), "assets", file);
 }
 

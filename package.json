@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "DerivaSocial — app desktop que acompanha o blog Devs à Deriva e publica nas redes sociais.",
   "author": "Leandro Dukievicz",
+  "desktopName": "DerivaSocial",
   "license": "UNLICENSED",
   "private": true,
   "main": "dist/main.js",
@@ -28,7 +29,7 @@
     "files": ["dist/**/*", "renderer/**/*", "assets/**/*", "package.json"],
     "win": {
       "target": "nsis",
-      "icon": "assets/derivasocial.ico"
+      "icon": "assets/derivasocialicone.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -37,9 +38,10 @@
     },
     "linux": {
       "target": ["AppImage", "deb"],
-      "icon": "assets/derivasocial-512.png",
+      "icon": "assets/derivasocialicone-512.png",
       "category": "Utility",
-      "maintainer": "Leandro Dukievicz"
+      "maintainer": "Leandro Dukievicz",
+      "syncDesktopName": true
     }
   }
 }
