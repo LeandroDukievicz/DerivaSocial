@@ -100,7 +100,7 @@ src/
   store.ts       # RSS (parser próprio) + persistência JSON
 renderer/
   index.html     # dashboard (tema neon LD Studio) — usa window.api
-assets/          # ícones do app (derivasocial.ico / .png em vários tamanhos)
+assets/          # ícone oficial do app: capacete outline neon (PNG/ICO/SVG)
 dist/            # saída do tsc (gitignored)
 release/         # instaladores gerados pelo electron-builder (gitignored)
 ```
