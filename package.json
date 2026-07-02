@@ -12,7 +12,9 @@
     "dev": "npm run build && electron . --no-sandbox",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:win": "npm run build && electron-builder --win",
-    "dist": "npm run build && electron-builder -lw"
+    "dist": "npm run build && electron-builder -lw",
+    "install:deb": "cp -f release/*.deb /tmp/derivasocial.deb && sudo apt-get install -y /tmp/derivasocial.deb",
+    "reinstall": "npm run dist:linux && npm run install:deb"
   },
   "devDependencies": {
     "electron": "*",

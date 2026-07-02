@@ -56,9 +56,16 @@ npm run dist         # ambos (linux + windows)
 ### Rodar no Linux (recomendado: `.deb`)
 
 ```bash
-sudo apt install ./release/derivasocial_0.1.0_amd64.deb   # instala no menu; abre no duplo-clique
+npm run reinstall     # empacota o .deb e instala (pede sudo)
 ```
-O `.deb` configura o sandbox do Chromium corretamente — abre sem flags.
+Ou em dois passos:
+```bash
+npm run dist:linux    # gera o .deb / .AppImage em release/
+npm run install:deb   # instala sem o aviso do apt (ver nota abaixo)
+```
+O `.deb` instala no menu, configura o sandbox do Chromium e abre no duplo-clique — sem flags.
+
+> **Por que `install:deb` copia pra `/tmp` antes:** o apt usa um usuário interno (`_apt`) que **não consegue ler arquivos dentro da sua home**, o que gera o aviso `N: ...sem isolamento... Permissão negada`. É inofensivo (instala mesmo assim), mas instalando a partir de `/tmp` (legível por todos) o aviso não aparece.
 
 **Alternativa `.AppImage`:** precisa da lib FUSE2 uma única vez —
 ```bash
