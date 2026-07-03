@@ -6,7 +6,10 @@ Guarde cada valor num bloco de notas; nada disso vai pro Git. Passos com 🤝 fa
 
 ---
 
-## 1️⃣ LINKEDIN
+## 1️⃣ LINKEDIN — ✅ CONCLUÍDO (2026-07-02)
+
+> **Status:** app criado, OAuth conectado e publicação **funcionando no perfil pessoal**.
+> **Decisão registrada:** publicar como **Página** exigiria o produto "Community Management API" (review manual da LinkedIn, dias/semanas). Optamos por **manter no perfil pessoal** — sem burocracia e com alcance melhor no algoritmo. Se um dia quiser a Página: aba Products → Request access em "Community Management API" e me avisar quando aprovar.
 
 **Pré-requisito:** uma Company Page (se não tiver: <https://www.linkedin.com/company/setup/new> — 2 min, grátis).
 
