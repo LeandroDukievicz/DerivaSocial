@@ -11,7 +11,7 @@ Guarde cada valor num bloco de notas; nada disso vai pro Git. Passos com 🤝 fa
 **Pré-requisito:** uma Company Page (se não tiver: <https://www.linkedin.com/company/setup/new> — 2 min, grátis).
 
 1. <https://www.linkedin.com/developers/apps> → **Create app**.
-2. Preencher: App name `DerivaSocial` · **LinkedIn Page** (a página acima) · logo (`assets/derivasocialicone-512.png`) · aceitar termos → **Create app**.
+2. Preencher: App name `DerivaSocial` · **LinkedIn Page** (a página acima) · logo (`assets/capacete-de-astronauta-512.png`) · aceitar termos → **Create app**.
 3. Aba **Settings** → **Verify** → abrir a URL gerada → **Verify** (você é admin da página).
 4. Aba **Products** → **Request access** em:
    - **Share on LinkedIn** (publicar no perfil — `w_member_social`)

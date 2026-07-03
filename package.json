@@ -25,11 +25,22 @@
   "build": {
     "appId": "com.derivasocial.app",
     "productName": "DerivaSocial",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "renderer/**/*", "assets/**/*", "package.json"],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*"
+    ],
     "win": {
       "target": "nsis",
-      "icon": "assets/derivasocialicone.ico"
+      "icon": "assets/capacete-de-astronauta.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -37,11 +48,17 @@
       "perMachine": false
     },
     "linux": {
-      "target": ["AppImage", "deb"],
-      "icon": "assets/derivasocialicone-512.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/capacete-de-astronauta-512.png",
       "category": "Utility",
       "maintainer": "Leandro Dukievicz",
       "syncDesktopName": true
     }
+  },
+  "dependencies": {
+    "sharp": "^0.35.3"
   }
 }

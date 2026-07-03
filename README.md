@@ -11,7 +11,8 @@ Visual no estilo **dark/neon do dashboard LD Studio**.
 - **[Electron](https://www.electronjs.org/)** + **[electron-builder](https://www.electron.build/)** — app instalável real (`.exe` no Windows, `.AppImage`/`.deb` no Linux), com assinatura e auto-update maduros. É o mesmo motor do VS Code.
 - **TypeScript** no _main process_ (backend) → compilado com `tsc` para `dist/`.
 - **HTML/CSS/JS puro** no _renderer_ (a UI), sem framework.
-- **Sem dependências de runtime pesadas**: parser de RSS próprio (regex), persistência em JSON, `fetch` nativo do Node.
+- **Sharp** para gerar thumbnails locais reaproveitando a imagem original do post com overlay de texto.
+- Parser de RSS próprio (regex), persistência em JSON, `fetch` nativo do Node.
 
 ### Por que Electron (e não `deno desktop`)
 
@@ -25,14 +26,16 @@ O projeto começou em `deno desktop`, mas ele é **experimental** (lançado em j
 Electron (app .exe / .AppImage)
 ├── main process  (src/main.ts)      → janela + agendador (poll horário) + IPC
 │   ├── src/store.ts                 → ingestão do RSS + persistência (JSON em userData)
+│   ├── src/thumbnail.ts             → geração local de thumbnails com Sharp
 │   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
-└── renderer      (renderer/index.html) → dashboard neon (lista novo/publicado)
+└── renderer      (renderer/index.html) → dashboard neon (lista novo/publicado + thumbnails)
         chama o backend via  window.api.getPosts() / getStats() / refresh()
 ```
 
 - **Sem servidor HTTP:** o renderer fala com o backend por **IPC** (`contextIsolation` ligado, sem `nodeIntegration` — seguro).
 - **Poll horário:** o main faz `refreshPosts()` ao abrir e a cada 1h (`setInterval`).
 - **Dados:** salvos em `app.getPath("userData")/posts.json` (dedup por `guid` do RSS — nunca duplica).
+- **Thumbnails:** geradas em `app.getPath("userData")/thumbnails` a partir da imagem do post, com sugestões locais de texto curto.
 
 ---
 
@@ -98,9 +101,10 @@ src/
   main.ts        # Electron main: janela, IPC, agendador (poll horário)
   preload.ts     # contextBridge (window.api)
   store.ts       # RSS (parser próprio) + persistência JSON
+  thumbnail.ts   # composição de thumbnail com imagem original + texto
 renderer/
   index.html     # dashboard (tema neon LD Studio) — usa window.api
-assets/          # ícone oficial do app: derivasocialicone.png e derivados PNG/ICO
+assets/          # ícone oficial do app: capacete-de-astronauta.png e derivados PNG/ICO
 dist/            # saída do tsc (gitignored)
 release/         # instaladores gerados pelo electron-builder (gitignored)
 ```
