@@ -3,3 +3,10 @@ dist/
 release/
 data/
 *.log
+
+# segredos — NUNCA commitar
+keys.txt
+**/keys.txt
+.env
+*.secret
+credentials.json
