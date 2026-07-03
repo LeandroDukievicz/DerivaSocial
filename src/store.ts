@@ -4,7 +4,15 @@ import * as path from "node:path";
 
 const RSS_URL = process.env.RSS_URL ?? "https://devsaderiva.com.br/rss.xml";
 
-export type Status = "novo" | "publicado" | "ignorado";
+export type Status = "novo" | "agendado" | "publicado" | "ignorado";
+
+export interface Schedule {
+  at: string; // ISO — quando disparar
+  text: string; // legenda usada em todas as redes
+  networks: string[]; // redes-alvo (dispara em paralelo)
+  status: "pending" | "done" | "error";
+  result?: string; // resumo pós-execução (sucessos/falhas)
+}
 
 export interface Post {
   guid: string;
@@ -17,6 +25,7 @@ export interface Post {
   discoveredAt: string;
   status: Status;
   networks: Record<string, { status: string; url?: string }>;
+  schedule?: Schedule;
 }
 
 // Definido pelo main via init() para gravar em app.getPath("userData").
@@ -60,11 +69,24 @@ export async function markPublished(guid: string, network: string, url?: string)
   return post;
 }
 
+/** Define/atualiza/remove o agendamento de um post (e ajusta o status). */
+export async function setSchedule(guid: string, schedule: Schedule | null): Promise<Post | null> {
+  const data = await load();
+  const post = data[guid];
+  if (!post) return null;
+  post.schedule = schedule ?? undefined;
+  const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
+  post.status = schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
+  await save(data);
+  return post;
+}
+
 export async function getStats() {
   const posts = await getPosts();
   return {
     total: posts.length,
     novos: posts.filter((p) => p.status === "novo").length,
+    agendados: posts.filter((p) => p.status === "agendado").length,
     publicados: posts.filter((p) => p.status === "publicado").length,
   };
 }

@@ -83,9 +83,17 @@ Stub pronto no seletor de rede. Falta criar o app Meta com o use case **"Acessar
 ### Fluxo de publicação no dashboard
 
 1. Card do post → botão **Publicar** → abre o painel com o **texto sugerido** (título + resumo + link + hashtags), totalmente editável.
-2. Escolhe a **rede** no seletor → **🚀 Publicar**.
-3. O resultado aparece com o **link da publicação**; o chip da rede fica verde ✓ e o post vira "publicado".
-4. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn **e** no Instagram; nunca duplica na mesma rede.
+2. **Publicar agora:** escolhe a **rede** no seletor → **🚀 Publicar agora**.
+3. **Ou agendar:** escolhe **data/hora** + marca as **redes** (checkboxes) → **⏰ Agendar** — no horário, o app dispara e publica em **todas as redes selecionadas em paralelo**.
+4. O resultado aparece com o **link da publicação**; o chip da rede fica verde ✓ e o post vira "publicado".
+5. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn **e** no Instagram; nunca duplica na mesma rede.
+
+### ⏰ Agendamento — como funciona
+
+- O post agendado ganha o status **agendado** (badge lilás + card "Agendados" nas estatísticas) e o painel mostra data/redes/texto com opção de **cancelar**.
+- Um scheduler no main process checa **a cada 30s**; no horário, publica nas redes selecionadas **em paralelo** (`Promise.allSettled`) — se uma falhar, as outras seguem, e o resultado por rede fica registrado no painel.
+- **O app precisa estar aberto no horário.** Se estiver fechado, há *catch-up*: o agendamento vencido dispara **assim que o app abrir**.
+- O texto agendado é o mesmo para todas as redes (respeitando os limites de cada uma).
 
 ---
 

@@ -18,6 +18,7 @@
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
+html{color-scheme:dark}
 html,body{margin:0;height:100%}
 body{
   background:
@@ -45,7 +46,8 @@ a{color:var(--cyan-bright);text-decoration:none}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
 /* Stats */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media (max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
 .stat{position:relative;background:linear-gradient(180deg,rgba(8,26,58,.85),rgba(4,13,30,.85));
   border:1px solid var(--line);border-radius:15px;padding:16px 18px;overflow:hidden}
 .stat::before{content:"";position:absolute;inset:0;background:radial-gradient(300px 80px at 100% 0,rgba(0,255,255,.10),transparent 60%);pointer-events:none}
@@ -53,6 +55,7 @@ a{color:var(--cyan-bright);text-decoration:none}
   background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .stat.novos .n{background:linear-gradient(135deg,var(--warn),var(--pink));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .stat.pub .n{background:linear-gradient(135deg,var(--ok),var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat.sched .n{background:linear-gradient(135deg,var(--lilac),var(--magenta));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .stat .l{margin-top:4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-family:var(--mono)}
 
 /* Section title */
@@ -85,6 +88,7 @@ a{color:var(--cyan-bright);text-decoration:none}
   padding:4px 10px;border-radius:999px;text-transform:uppercase}
 .status.novo{color:#02121f;background:linear-gradient(135deg,var(--warn),var(--pink))}
 .status.publicado{color:#02121f;background:linear-gradient(135deg,var(--ok),var(--cyan))}
+.status.agendado{color:#02121f;background:linear-gradient(135deg,var(--lilac),var(--purple))}
 .side{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px;margin-left:auto}
 .actions{display:flex;flex-direction:column;gap:8px;align-items:stretch}
 .thumb-panel{flex:1 0 100%;width:100%;max-width:100%;min-width:0;margin:8px 0 0;border-top:1px solid var(--line);padding-top:12px;position:relative;z-index:1}
@@ -92,10 +96,23 @@ a{color:var(--cyan-bright);text-decoration:none}
 .thumb-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
 .thumb-field{display:grid;gap:7px}
 .thumb-field label{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
-.thumb-field textarea,.thumb-field select{width:100%;background:rgba(1,2,18,.62);border:1px solid var(--line2);
+.thumb-field textarea,.thumb-field select,.thumb-field input[type=datetime-local]{width:100%;background:rgba(1,2,18,.62);border:1px solid var(--line2);
   color:var(--txt);border-radius:10px;padding:10px 12px;font:600 .92rem var(--sans);outline:none}
 .thumb-field select option{color:#0a1220;background:#eef3f8}
 .thumb-field select:disabled{opacity:.55}
+.schedrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.schedrow input[type=datetime-local]{width:auto;background:rgba(1,2,18,.62);border:1px solid var(--line2);
+  color:var(--txt);border-radius:10px;padding:9px 11px;font:600 .86rem var(--sans);outline:none}
+.schedrow input[type=datetime-local]:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.12)}
+.ck{display:inline-flex;gap:6px;align-items:center;font-size:.8rem;font-weight:600;color:var(--txt);
+  border:1px solid var(--line);padding:8px 11px;border-radius:9px;cursor:pointer;user-select:none}
+.ck input{accent-color:#00ffff}
+.ck.off{opacity:.4;cursor:not-allowed}
+.schedinfo{font-family:var(--mono);font-size:.9rem;color:var(--lilac);padding:10px 12px;
+  border:1px dashed var(--line2);border-radius:10px;background:rgba(204,0,255,.05)}
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0 4px;color:var(--faint);
+  font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.14em}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .thumb-field textarea{min-height:72px;resize:vertical;line-height:1.35}
 .thumb-field textarea:focus,.thumb-field select:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.12)}
 .suggestions{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
@@ -136,13 +153,14 @@ a{color:var(--cyan-bright);text-decoration:none}
   <div class="stats">
     <div class="stat"><div class="n" id="s-total">–</div><div class="l">Posts</div></div>
     <div class="stat novos"><div class="n" id="s-novos">–</div><div class="l">A publicar</div></div>
+    <div class="stat sched"><div class="n" id="s-agend">–</div><div class="l">Agendados</div></div>
     <div class="stat pub"><div class="n" id="s-pub">–</div><div class="l">Publicados</div></div>
   </div>
 
   <div class="sec"><h2>Posts do blog</h2><div class="rule"></div></div>
   <div class="list" id="list"><div class="empty">carregando…</div></div>
 
-  <div class="foot">M1 · LinkedIn ativo · Instagram e Threads em breve</div>
+  <div class="foot">M1 · LinkedIn + Instagram ativos · agendamento multi-rede · Threads em breve</div>
 </div>
 
 <script>
@@ -185,6 +203,7 @@ async function render() {
   POSTS = Object.fromEntries(posts.map((p) => [p.guid, p]));
   document.getElementById("s-total").textContent = stats.total;
   document.getElementById("s-novos").textContent = stats.novos;
+  document.getElementById("s-agend").textContent = stats.agendados ?? 0;
   document.getElementById("s-pub").textContent = stats.publicados;
   const list = document.getElementById("list");
   list.innerHTML = posts.length ? posts.map(card).join("") : '<div class="empty">nenhum post ainda</div>';
@@ -225,8 +244,41 @@ const PUB_NETS = [
   { id: "threads", label: "Threads (em breve)", off: true },
 ];
 
+const fmtDateTime = (s) => {
+  const d = new Date(s);
+  return isNaN(d) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
+
+// datetime-local usa horário LOCAL no formato YYYY-MM-DDTHH:mm
+function localDT(minutesFromNow) {
+  const d = new Date(Date.now() + minutesFromNow * 60000);
+  d.setSeconds(0, 0);
+  const p = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+
 function pubPanelHtml(p) {
   const isPub = (id) => p.networks && p.networks[id] && p.networks[id].status === "published";
+
+  // Agendamento pendente: mostra o resumo + cancelar (esconde o formulário)
+  if (p.schedule && p.schedule.status === "pending") {
+    const s = p.schedule;
+    return '<div class="thumb-grid">' +
+      '<div>' +
+        '<div class="thumb-field"><label>Publicação agendada</label>' +
+          '<div class="schedinfo">⏰ ' + fmtDateTime(s.at) + " → " + s.networks.join(" + ") + "</div>" +
+        "</div>" +
+        '<div class="thumb-field" style="margin-top:8px"><label>Texto que será publicado</label>' +
+          '<textarea readonly style="min-height:90px;opacity:.75">' + esc(s.text) + "</textarea>" +
+        "</div>" +
+        '<div class="thumb-controls"><div></div>' +
+          '<button class="btn" data-schedule-cancel type="button">✖ Cancelar agendamento</button>' +
+        "</div>" +
+      "</div>" +
+      '<div class="thumb-result">disparo automático nas redes selecionadas.<br><br>⚠ o app precisa estar aberto no horário — se estiver fechado, publica assim que abrir.</div>' +
+    "</div>";
+  }
+
   const firstAvail = PUB_NETS.find((n) => !n.off && !isPub(n.id));
   const allDone = !firstAvail;
 
@@ -242,6 +294,11 @@ function pubPanelHtml(p) {
     return "✅ " + n.label + (info.url ? '<div class="path">' + esc(info.url) + "</div>" : "");
   }).join("<br>");
 
+  const resultHtml =
+    [doneList, p.schedule && p.schedule.result ? "resultado do agendamento:<br>" + esc(p.schedule.result) : ""]
+      .filter(Boolean).join("<br><br>") ||
+    "publique agora numa rede, ou agende data/hora para disparar em todas de uma vez";
+
   return '<div class="thumb-grid">' +
     '<div>' +
       '<div class="thumb-field">' +
@@ -252,13 +309,52 @@ function pubPanelHtml(p) {
         '<div class="thumb-field"><label>Rede</label>' +
           '<select data-pub-network' + (allDone ? " disabled" : "") + ">" + opts + "</select>" +
         "</div>" +
-        '<button class="btn" data-publish-go type="button"' + (allDone ? " disabled" : "") + ">🚀 Publicar</button>" +
+        '<button class="btn" data-publish-go type="button"' + (allDone ? " disabled" : "") + ">🚀 Publicar agora</button>" +
+      "</div>" +
+      '<div class="divider">ou agendar</div>' +
+      '<div class="schedrow">' +
+        '<input type="datetime-local" data-sched-at value="' + localDT(60) + '" min="' + localDT(1) + '">' +
+        PUB_NETS.map((n) => {
+          const dis = n.off || isPub(n.id);
+          return '<label class="ck' + (dis ? " off" : "") + '"><input type="checkbox" data-sched-net value="' + n.id + '"' +
+            (dis ? " disabled" : " checked") + ">" + n.label.replace(" (em breve)", "") + (isPub(n.id) ? " ✓" : "") + "</label>";
+        }).join("") +
+        '<button class="btn" data-schedule-go type="button"' + (allDone ? " disabled" : "") + ">⏰ Agendar</button>" +
       "</div>" +
     "</div>" +
-    '<div class="thumb-result" data-pub-result>' +
-      (doneList || "confira o texto e clique em Publicar") +
-    "</div>" +
+    '<div class="thumb-result" data-pub-result>' + resultHtml + "</div>" +
   "</div>";
+}
+
+function reopenPubPanel(guid) {
+  const panel = [...document.querySelectorAll("[data-pub-panel]")].find((el) => el.dataset.guid === guid);
+  if (panel && POSTS[guid]) {
+    panel.hidden = false;
+    panel.innerHTML = pubPanelHtml(POSTS[guid]);
+  }
+}
+
+async function doSchedule(panel, btn) {
+  const result = panel.querySelector("[data-pub-result]");
+  const text = panel.querySelector("[data-pub-text]").value.trim();
+  const at = panel.querySelector("[data-sched-at]").value;
+  const networks = [...panel.querySelectorAll("[data-sched-net]:checked")].map((i) => i.value);
+
+  if (!text) { result.textContent = "o texto não pode ficar vazio"; return; }
+  if (!at) { result.textContent = "escolha a data e a hora"; return; }
+  if (new Date(at).getTime() <= Date.now()) { result.textContent = "escolha um horário no futuro"; return; }
+  if (!networks.length) { result.textContent = "selecione ao menos uma rede"; return; }
+
+  btn.disabled = true;
+  result.textContent = "agendando…";
+  try {
+    await window.api.schedulePost({ guid: panel.dataset.guid, at: new Date(at).toISOString(), text, networks });
+    await render();
+    reopenPubPanel(panel.dataset.guid);
+  } catch (err) {
+    result.textContent = "❌ erro: " + (err.message || String(err));
+    btn.disabled = false;
+  }
 }
 
 async function doPublish(panel, btn) {
@@ -282,13 +378,7 @@ async function doPublish(panel, btn) {
     const out = await window.api.publish({ guid: panel.dataset.guid, network, text });
     result.innerHTML = "✅ publicado!" + (out.url ? '<div class="path">' + esc(out.url) + "</div>" : "");
     await render();
-    // reabre o painel do mesmo post pra manter o feedback visível
-    const again = document.querySelector('[data-pub-panel][data-guid="' + CSS.escape(panel.dataset.guid) + '"]');
-    if (again) {
-      again.hidden = false;
-      again.dataset.loaded = "1";
-      again.innerHTML = pubPanelHtml(POSTS[panel.dataset.guid]);
-    }
+    reopenPubPanel(panel.dataset.guid);
   } catch (err) {
     result.textContent = "❌ erro: " + (err.message || String(err));
     btn.disabled = false;
@@ -325,6 +415,24 @@ document.getElementById("list").addEventListener("click", async (e) => {
   if (btn.dataset.publishGo !== undefined) {
     const panel = btn.closest("[data-pub-panel]");
     if (panel) await doPublish(panel, btn);
+    return;
+  }
+
+  if (btn.dataset.scheduleGo !== undefined) {
+    const panel = btn.closest("[data-pub-panel]");
+    if (panel) await doSchedule(panel, btn);
+    return;
+  }
+
+  if (btn.dataset.scheduleCancel !== undefined) {
+    const panel = btn.closest("[data-pub-panel]");
+    if (!panel) return;
+    btn.disabled = true;
+    try {
+      await window.api.cancelSchedule(panel.dataset.guid);
+      await render();
+      reopenPubPanel(panel.dataset.guid);
+    } catch (err) { alert("Cancelar: " + (err.message || err)); btn.disabled = false; }
     return;
   }
 
@@ -414,6 +522,8 @@ async function generateThumbnail(panel, btn) {
 
 render();
 refreshLinkedinButton();
+// agendamento disparou no backend → atualiza a lista automaticamente
+window.api.onPostsUpdated(() => render());
 </script>
 </body>
 </html>

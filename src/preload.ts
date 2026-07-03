@@ -12,4 +12,10 @@ contextBridge.exposeInMainWorld("api", {
   instagramStatus: () => ipcRenderer.invoke("instagram:status"),
   linkedinConnect: () => ipcRenderer.invoke("linkedin:connect"),
   publish: (payload: { guid: string; network: string; text: string }) => ipcRenderer.invoke("publish", payload),
+  schedulePost: (payload: { guid: string; at: string; text: string; networks: string[] }) =>
+    ipcRenderer.invoke("schedule:set", payload),
+  cancelSchedule: (guid: string) => ipcRenderer.invoke("schedule:cancel", guid),
+  onPostsUpdated: (cb: () => void) => {
+    ipcRenderer.on("posts-updated", () => cb());
+  },
 });
