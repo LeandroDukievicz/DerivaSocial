@@ -44,6 +44,22 @@ export async function getPosts(): Promise<Post[]> {
   return Object.values(data).sort((a, b) => (a.discoveredAt < b.discoveredAt ? 1 : -1));
 }
 
+export async function getPost(guid: string): Promise<Post | null> {
+  const data = await load();
+  return data[guid] || null;
+}
+
+/** Marca um post como publicado numa rede (e o post como "publicado"). */
+export async function markPublished(guid: string, network: string, url?: string): Promise<Post | null> {
+  const data = await load();
+  const post = data[guid];
+  if (!post) return null;
+  post.networks[network] = { status: "published", url };
+  post.status = "publicado";
+  await save(data);
+  return post;
+}
+
 export async function getStats() {
   const posts = await getPosts();
   return {

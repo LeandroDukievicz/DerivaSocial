@@ -86,8 +86,36 @@ a{color:var(--cyan-bright);text-decoration:none}
 .status.novo{color:#02121f;background:linear-gradient(135deg,var(--warn),var(--pink))}
 .status.publicado{color:#02121f;background:linear-gradient(135deg,var(--ok),var(--cyan))}
 .side{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px}
+.actions{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.thumb-panel{flex:1 0 100%;margin:8px 0 0 134px;border-top:1px solid var(--line);padding-top:12px;position:relative;z-index:1}
+.thumb-panel[hidden]{display:none}
+.thumb-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
+.thumb-field{display:grid;gap:7px}
+.thumb-field label{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.thumb-field textarea,.thumb-field select{width:100%;background:rgba(1,2,18,.62);border:1px solid var(--line2);
+  color:var(--txt);border-radius:10px;padding:10px 12px;font:600 .92rem var(--sans);outline:none}
+.thumb-field textarea{min-height:72px;resize:vertical;line-height:1.35}
+.thumb-field textarea:focus,.thumb-field select:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.12)}
+.suggestions{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
+.suggestion{font-family:var(--sans);font-size:.76rem;font-weight:700;color:var(--txt);background:rgba(0,255,255,.08);
+  border:1px solid var(--line2);border-radius:999px;padding:6px 10px;cursor:pointer}
+.suggestion:hover{border-color:var(--cyan);color:#fff}
+.thumb-controls{display:grid;grid-template-columns:minmax(140px,220px) auto;gap:9px;margin-top:10px;align-items:end}
+.thumb-result{min-height:146px;border:1px dashed var(--line2);border-radius:12px;display:grid;place-items:center;
+  color:var(--muted);font-family:var(--mono);font-size:.72rem;text-align:center;padding:10px;background:rgba(1,2,18,.28)}
+.thumb-result img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+.thumb-result .path{margin-top:8px;word-break:break-all;color:var(--muted);font-size:.66rem}
+.thumb-result .btn{margin-top:8px}
 .empty{text-align:center;color:var(--muted);padding:50px 0;font-family:var(--mono);font-size:.85rem}
 .foot{margin-top:26px;text-align:center;color:var(--faint);font-size:.72rem;font-family:var(--mono)}
+@media (max-width: 760px){
+  .card{display:block}
+  .thumb{float:left;margin:0 12px 8px 0}
+  .side{align-items:flex-start;margin-top:10px}
+  .actions{flex-direction:row;flex-wrap:wrap}
+  .thumb-panel{margin-left:0;clear:both}
+  .thumb-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -99,6 +127,7 @@ a{color:var(--cyan-bright);text-decoration:none}
       <p id="rssline">devsaderiva.com.br</p>
     </div>
     <div class="spacer"></div>
+    <button class="btn" id="li-conn" title="Conectar sua conta do LinkedIn">in · verificando…</button>
     <button class="btn" id="refresh">↻ Atualizar agora</button>
   </div>
 
@@ -111,7 +140,7 @@ a{color:var(--cyan-bright);text-decoration:none}
   <div class="sec"><h2>Posts do blog</h2><div class="rule"></div></div>
   <div class="list" id="list"><div class="empty">carregando…</div></div>
 
-  <div class="foot">M0 · lista + sincronização horária · publicação nas redes chega no M1</div>
+  <div class="foot">M1 · LinkedIn ativo · Instagram e Threads em breve</div>
 </div>
 
 <script>
@@ -123,6 +152,7 @@ function card(p) {
   const thumb = p.image
     ? '<img class="thumb" src="' + esc(p.image) + '" alt="" loading="lazy">'
     : '<div class="thumb ph">sem imagem</div>';
+  const thumbDisabled = p.image ? "" : ' disabled title="sem imagem no RSS"';
   const chips = REDES.map((r) => {
     const st = p.networks && p.networks[r];
     const ok = st && st.status === "published";
@@ -136,18 +166,114 @@ function card(p) {
     "</div>" +
     '<div class="side">' +
       '<span class="status ' + p.status + '">' + p.status + "</span>" +
-      '<button class="btn" disabled title="chega no M1">Publicar</button>' +
+      '<div class="actions">' +
+        '<button class="btn" data-thumb-open data-guid="' + esc(p.guid) + '"' + thumbDisabled + ">Thumbnail</button>" +
+        '<button class="btn" data-pub-open data-guid="' + esc(p.guid) + '">Publicar</button>' +
+      "</div>" +
     "</div>" +
+    '<div class="thumb-panel" data-thumb-panel data-guid="' + esc(p.guid) + '" hidden></div>' +
+    '<div class="thumb-panel" data-pub-panel data-guid="' + esc(p.guid) + '" hidden></div>' +
   "</div>";
 }
 
+let POSTS = {};
+
 async function render() {
   const [posts, stats] = await Promise.all([window.api.getPosts(), window.api.getStats()]);
+  POSTS = Object.fromEntries(posts.map((p) => [p.guid, p]));
   document.getElementById("s-total").textContent = stats.total;
   document.getElementById("s-novos").textContent = stats.novos;
   document.getElementById("s-pub").textContent = stats.publicados;
   const list = document.getElementById("list");
   list.innerHTML = posts.length ? posts.map(card).join("") : '<div class="empty">nenhum post ainda</div>';
+}
+
+// ---- LinkedIn: conexão ----
+async function refreshLinkedinButton() {
+  const btn = document.getElementById("li-conn");
+  try {
+    const st = await window.api.linkedinStatus();
+    if (!st.configured) { btn.textContent = "in · não configurado"; btn.disabled = true; btn.title = "Coloque Client ID/Secret no keys.txt"; }
+    else if (st.connected) { btn.textContent = "in ✔ " + (st.name || "conectado"); btn.title = "Token válido até " + (st.expiresAt ? new Date(st.expiresAt).toLocaleDateString("pt-BR") : "?") + " — clique para reconectar"; }
+    else { btn.textContent = st.expired ? "in ⚠ reconectar" : "in 🔗 Conectar LinkedIn"; btn.title = "Abre o navegador para autorizar"; }
+  } catch (e) {
+    btn.textContent = "in · erro";
+    btn.title = e.message || String(e);
+  }
+}
+
+document.getElementById("li-conn").addEventListener("click", async (e) => {
+  const btn = e.target;
+  btn.disabled = true; btn.textContent = "in … autorize no navegador";
+  try { await window.api.linkedinConnect(); }
+  catch (err) { alert("LinkedIn: " + (err.message || err)); }
+  finally { btn.disabled = false; await refreshLinkedinButton(); }
+});
+
+// ---- Publicação ----
+function defaultCopy(p) {
+  const sum = (p.summary || "").trim();
+  const tag = p.category ? " #" + p.category.replace(/\s+/g, "") : "";
+  return p.title + "\n\n" + (sum ? sum + "\n\n" : "") + "Leia no blog 👇\n" + p.url + "\n\n#DevsADeriva" + tag;
+}
+
+function pubPanelHtml(p) {
+  const li = p.networks && p.networks.linkedin;
+  const done = li && li.status === "published";
+  return '<div class="thumb-grid">' +
+    '<div>' +
+      '<div class="thumb-field">' +
+        '<label>Texto da publicação (edite à vontade)</label>' +
+        '<textarea data-pub-text maxlength="2900" style="min-height:130px">' + esc(defaultCopy(p)) + "</textarea>" +
+      "</div>" +
+      '<div class="thumb-controls">' +
+        '<div class="thumb-field"><label>Rede</label>' +
+          '<select data-pub-network>' +
+            '<option value="linkedin"' + (done ? ' disabled' : '') + '>LinkedIn' + (done ? ' (já publicado)' : '') + '</option>' +
+            '<option value="instagram" disabled>Instagram (em breve)</option>' +
+            '<option value="threads" disabled>Threads (em breve)</option>' +
+          "</select>" +
+        "</div>" +
+        '<button class="btn" data-publish-go type="button"' + (done ? " disabled" : "") + ">🚀 Publicar</button>" +
+      "</div>" +
+    "</div>" +
+    '<div class="thumb-result" data-pub-result>' +
+      (done
+        ? '✅ já publicado no LinkedIn' + (li.url ? '<div class="path">' + esc(li.url) + "</div>" : "")
+        : "confira o texto e clique em Publicar") +
+    "</div>" +
+  "</div>";
+}
+
+async function doPublish(panel, btn) {
+  const text = panel.querySelector("[data-pub-text]").value.trim();
+  const network = panel.querySelector("[data-pub-network]").value;
+  const result = panel.querySelector("[data-pub-result]");
+  if (!text) { result.textContent = "o texto não pode ficar vazio"; return; }
+
+  const st = await window.api.linkedinStatus();
+  if (network === "linkedin" && !st.connected) {
+    result.innerHTML = "⚠ conecte o LinkedIn primeiro (botão no topo)";
+    return;
+  }
+
+  btn.disabled = true;
+  result.textContent = "publicando…";
+  try {
+    const out = await window.api.publish({ guid: panel.dataset.guid, network, text });
+    result.innerHTML = "✅ publicado!" + (out.url ? '<div class="path">' + esc(out.url) + "</div>" : "");
+    await render();
+    // reabre o painel do mesmo post pra manter o feedback visível
+    const again = document.querySelector('[data-pub-panel][data-guid="' + CSS.escape(panel.dataset.guid) + '"]');
+    if (again) {
+      again.hidden = false;
+      again.dataset.loaded = "1";
+      again.innerHTML = pubPanelHtml(POSTS[panel.dataset.guid]);
+    }
+  } catch (err) {
+    result.textContent = "❌ erro: " + (err.message || String(err));
+    btn.disabled = false;
+  }
 }
 
 document.getElementById("refresh").addEventListener("click", async (e) => {
@@ -157,7 +283,118 @@ document.getElementById("refresh").addEventListener("click", async (e) => {
   finally { b.disabled = false; b.textContent = "↻ Atualizar agora"; }
 });
 
+document.getElementById("list").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+
+  if (btn.dataset.thumbOpen !== undefined) {
+    const panel = findPanel(btn.dataset.guid);
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden && !panel.dataset.loaded) await loadThumbnailPanel(panel, btn.dataset.guid);
+    return;
+  }
+
+  if (btn.dataset.pubOpen !== undefined) {
+    const panel = [...document.querySelectorAll("[data-pub-panel]")].find((el) => el.dataset.guid === btn.dataset.guid);
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) panel.innerHTML = pubPanelHtml(POSTS[btn.dataset.guid]);
+    return;
+  }
+
+  if (btn.dataset.publishGo !== undefined) {
+    const panel = btn.closest("[data-pub-panel]");
+    if (panel) await doPublish(panel, btn);
+    return;
+  }
+
+  if (btn.dataset.suggestion !== undefined) {
+    const panel = btn.closest(".thumb-panel");
+    const field = panel && panel.querySelector("[data-thumb-text]");
+    if (field) field.value = btn.textContent.trim();
+    return;
+  }
+
+  if (btn.dataset.generateThumb !== undefined) {
+    const panel = btn.closest(".thumb-panel");
+    if (panel) await generateThumbnail(panel, btn);
+    return;
+  }
+
+  if (btn.dataset.showThumb !== undefined) {
+    const result = btn.closest(".thumb-result");
+    if (result && result.dataset.path) await window.api.showThumbnail(result.dataset.path);
+  }
+});
+
+function findPanel(guid) {
+  return [...document.querySelectorAll("[data-thumb-panel]")].find((el) => el.dataset.guid === guid);
+}
+
+async function loadThumbnailPanel(panel, guid) {
+  panel.innerHTML = '<div class="thumb-result">carregando sugestões...</div>';
+  try {
+    const suggestions = await window.api.suggestThumbnailTexts(guid);
+    panel.dataset.loaded = "1";
+    panel.innerHTML = thumbnailPanelHtml(suggestions);
+  } catch (err) {
+    panel.innerHTML = '<div class="thumb-result">erro ao carregar sugestões: ' + esc(err.message || String(err)) + "</div>";
+  }
+}
+
+function thumbnailPanelHtml(suggestions) {
+  const first = suggestions[0] || "";
+  const buttons = suggestions.map((s) => '<button class="suggestion" data-suggestion type="button">' + esc(s) + "</button>").join("");
+  return '<div class="thumb-grid">' +
+    '<div>' +
+      '<div class="thumb-field">' +
+        '<label>Texto chamativo</label>' +
+        '<textarea data-thumb-text maxlength="70">' + esc(first) + "</textarea>" +
+      "</div>" +
+      '<div class="suggestions">' + buttons + "</div>" +
+      '<div class="thumb-controls">' +
+        '<div class="thumb-field">' +
+          '<label>Formato</label>' +
+          '<select data-thumb-format>' +
+            '<option value="og">1200x630 link/social</option>' +
+            '<option value="square">1080x1080 feed</option>' +
+            '<option value="story">1080x1920 story</option>' +
+          "</select>" +
+        "</div>" +
+        '<button class="btn" data-generate-thumb type="button">Gerar thumbnail</button>' +
+      "</div>" +
+    "</div>" +
+    '<div class="thumb-result" data-thumb-result>preview aparece aqui</div>' +
+  "</div>";
+}
+
+async function generateThumbnail(panel, btn) {
+  const text = panel.querySelector("[data-thumb-text]").value.trim();
+  const format = panel.querySelector("[data-thumb-format]").value;
+  const result = panel.querySelector("[data-thumb-result]");
+  if (!text) {
+    result.textContent = "informe um texto para gerar";
+    return;
+  }
+
+  btn.disabled = true;
+  result.textContent = "gerando imagem...";
+  try {
+    const out = await window.api.generateThumbnail({ guid: panel.dataset.guid, text, format });
+    result.dataset.path = out.path;
+    result.innerHTML = '<div><img src="' + out.dataUrl + '" alt="Thumbnail gerada">' +
+      '<div class="path">' + esc(out.width + "x" + out.height + " · " + out.path) + "</div>" +
+      '<button class="btn" data-show-thumb type="button">Mostrar arquivo</button></div>';
+  } catch (err) {
+    result.textContent = "erro ao gerar: " + (err.message || String(err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 render();
+refreshLinkedinButton();
 </script>
 </body>
 </html>
