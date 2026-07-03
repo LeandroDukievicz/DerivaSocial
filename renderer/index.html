@@ -219,9 +219,29 @@ function defaultCopy(p) {
   return p.title + "\n\n" + (sum ? sum + "\n\n" : "") + "Leia no blog 👇\n" + p.url + "\n\n#DevsADeriva" + tag;
 }
 
+const PUB_NETS = [
+  { id: "linkedin", label: "LinkedIn" },
+  { id: "instagram", label: "Instagram" },
+  { id: "threads", label: "Threads (em breve)", off: true },
+];
+
 function pubPanelHtml(p) {
-  const li = p.networks && p.networks.linkedin;
-  const done = li && li.status === "published";
+  const isPub = (id) => p.networks && p.networks[id] && p.networks[id].status === "published";
+  const firstAvail = PUB_NETS.find((n) => !n.off && !isPub(n.id));
+  const allDone = !firstAvail;
+
+  const opts = PUB_NETS.map((n) => {
+    const done = isPub(n.id);
+    const sel = (firstAvail ? n.id === firstAvail.id : n === PUB_NETS[0]) ? " selected" : "";
+    const dis = !allDone && (n.off || done) ? " disabled" : ""; // com select desabilitado, options ficam legíveis
+    return '<option value="' + n.id + '"' + dis + sel + ">" + n.label + (done ? " ✓ publicado" : "") + "</option>";
+  }).join("");
+
+  const doneList = PUB_NETS.filter((n) => isPub(n.id)).map((n) => {
+    const info = p.networks[n.id];
+    return "✅ " + n.label + (info.url ? '<div class="path">' + esc(info.url) + "</div>" : "");
+  }).join("<br>");
+
   return '<div class="thumb-grid">' +
     '<div>' +
       '<div class="thumb-field">' +
@@ -230,19 +250,13 @@ function pubPanelHtml(p) {
       "</div>" +
       '<div class="thumb-controls">' +
         '<div class="thumb-field"><label>Rede</label>' +
-          '<select data-pub-network' + (done ? " disabled" : "") + '>' +
-            '<option value="linkedin" selected>LinkedIn' + (done ? " ✓ publicado" : "") + "</option>" +
-            '<option value="instagram" disabled>Instagram (em breve)</option>' +
-            '<option value="threads" disabled>Threads (em breve)</option>' +
-          "</select>" +
+          '<select data-pub-network' + (allDone ? " disabled" : "") + ">" + opts + "</select>" +
         "</div>" +
-        '<button class="btn" data-publish-go type="button"' + (done ? " disabled" : "") + ">🚀 Publicar</button>" +
+        '<button class="btn" data-publish-go type="button"' + (allDone ? " disabled" : "") + ">🚀 Publicar</button>" +
       "</div>" +
     "</div>" +
     '<div class="thumb-result" data-pub-result>' +
-      (done
-        ? '✅ já publicado no LinkedIn' + (li.url ? '<div class="path">' + esc(li.url) + "</div>" : "")
-        : "confira o texto e clique em Publicar") +
+      (doneList || "confira o texto e clique em Publicar") +
     "</div>" +
   "</div>";
 }
@@ -253,10 +267,13 @@ async function doPublish(panel, btn) {
   const result = panel.querySelector("[data-pub-result]");
   if (!text) { result.textContent = "o texto não pode ficar vazio"; return; }
 
-  const st = await window.api.linkedinStatus();
-  if (network === "linkedin" && !st.connected) {
-    result.innerHTML = "⚠ conecte o LinkedIn primeiro (botão no topo)";
-    return;
+  if (network === "linkedin") {
+    const st = await window.api.linkedinStatus();
+    if (!st.connected) { result.innerHTML = "⚠ conecte o LinkedIn primeiro (botão no topo)"; return; }
+  }
+  if (network === "instagram") {
+    const st = await window.api.instagramStatus();
+    if (!st.configured) { result.innerHTML = "⚠ Instagram sem credenciais (keys.txt)"; return; }
   }
 
   btn.disabled = true;

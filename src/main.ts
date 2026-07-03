@@ -5,6 +5,7 @@ import * as store from "./store";
 import * as thumbnail from "./thumbnail";
 import * as secrets from "./secrets";
 import * as linkedin from "./linkedin";
+import * as instagram from "./instagram";
 
 // Mesmo nome em dev e empacotado => mesmo userData (~/.config/DerivaSocial),
 // compartilhando posts.json e secrets.json entre `npm start` e o app instalado.
@@ -71,14 +72,21 @@ ipcMain.handle("publish", async (_event, payload: { guid: string; network: strin
     await store.markPublished(post.guid, "linkedin", out.url);
     return { url: out.url };
   }
+  if (payload.network === "instagram") {
+    const out = await instagram.publish(post, payload.text);
+    await store.markPublished(post.guid, "instagram", out.url);
+    return { url: out.url };
+  }
   throw new Error(`Rede "${payload.network}" ainda não implementada (falta o app/token dela).`);
 });
+ipcMain.handle("instagram:status", () => instagram.status());
 
 app.whenReady().then(async () => {
   const dataDir = app.getPath("userData");
   store.init(dataDir);
   thumbnail.init(dataDir);
   await secrets.init(dataDir, app.getAppPath());
+  instagram.maybeRefreshToken().catch((e) => console.error("refresh IG:", e));
   await store.refreshPosts().catch((e) => console.error("refresh inicial:", e));
   // Poll de hora em hora
   setInterval(() => store.refreshPosts().catch((e) => console.error(e)), HORA_MS);
