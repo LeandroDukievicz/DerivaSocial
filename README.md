@@ -30,6 +30,7 @@ Electron (app .exe / .AppImage)
 │   ├── src/secrets.ts               → cofre local (userData/secrets.json) + import do keys.txt
 │   ├── src/linkedin.ts              → OAuth (navegador) + publicação no perfil
 │   ├── src/instagram.ts             → publicação no feed + renovação automática do token
+│   ├── src/threads.ts               → publicação no Threads + renovação automática do token
 │   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
 └── renderer      (renderer/index.html) → dashboard neon (posts + thumbnails + publicação)
         chama o backend via  window.api.*  (getPosts, publish, linkedinConnect, …)
@@ -57,6 +58,11 @@ instagram
 id do app do instagram : ...
 chave secreta : ...
 token de acesso : IGAA...
+
+threads
+app id : ...
+chave secreta : ...
+token de acesso : THAA...
 ```
 
 > O passo a passo completo para obter cada credencial (apps de desenvolvedor, permissões, testers) está em **[SETUP-REDES.md](SETUP-REDES.md)**.
@@ -76,9 +82,13 @@ token de acesso : IGAA...
 - **Renovação automática do token:** o token de 60 dias é renovado **toda semana** no start do app (`ig_refresh_token`) — não precisa voltar ao painel da Meta.
 - **Limitações do próprio Instagram:** o link na legenda **não é clicável** (vale para todo mundo); legenda limitada a 2.200 caracteres (o app trunca).
 
-### Threads 🔜
+### Threads ✅
 
-Stub pronto no seletor de rede. Falta criar o app Meta com o use case **"Acessar a API do Threads"** (ver SETUP-REDES.md) e implementar o publisher.
+- **Caminho:** app Meta próprio com o use case **"Acessar a API do Threads"** (`graph.threads.net`), publicando na conta **@devs_a_deriva**. O token é gerado no painel da Meta (gerador de token do caso de uso, exige *Threads Tester* aceito) e colado no `keys.txt`.
+- **Como publica:** cria um **container** (`IMAGE` com a capa do post, ou `TEXT` se não houver imagem) → aguarda processar → publica → captura o **permalink**.
+- **Imagem é opcional:** se a capa `.webp` for recusada, converte para JPG (proxy `images.weserv.nl`); se ainda assim falhar, publica **só o texto com o link** — nunca deixa de postar por causa da imagem.
+- **Renovação automática do token:** mesma rotina do Instagram, **toda semana** no start do app (`th_refresh_token`).
+- **Limite do Threads:** texto de até **500 caracteres** (o app trunca o excedente) — para o Threads vale encurtar o texto no painel pra garantir que o link não seja cortado.
 
 ### Fluxo de publicação no dashboard
 
@@ -86,7 +96,7 @@ Stub pronto no seletor de rede. Falta criar o app Meta com o use case **"Acessar
 2. **Publicar agora:** escolhe a **rede** no seletor → **🚀 Publicar agora**.
 3. **Ou agendar:** escolhe **data/hora** + marca as **redes** (checkboxes) → **⏰ Agendar** — no horário, o app dispara e publica em **todas as redes selecionadas em paralelo**.
 4. O resultado aparece com o **link da publicação**; o chip da rede fica verde ✓ e o post vira "publicado".
-5. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn **e** no Instagram; nunca duplica na mesma rede.
+5. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn, no Instagram **e** no Threads; nunca duplica na mesma rede.
 
 ### ⏰ Agendamento — como funciona
 
@@ -131,7 +141,7 @@ O `.deb` instala no menu, configura o sandbox do Chromium e abre no duplo-clique
 ```bash
 sudo apt install libfuse2      # depois é só dar duplo-clique no .AppImage
 # ou, sem instalar nada:
-./release/DerivaSocial-0.1.0.AppImage --appimage-extract-and-run
+./release/DerivaSocial-*.AppImage --appimage-extract-and-run
 ```
 
 > **Cross-compile:** o `.exe` (Windows) pode ser gerado a partir do Linux (`npm run dist:win`); alguns alvos baixam ferramentas do `electron-builder` na primeira execução.
@@ -145,7 +155,7 @@ sudo apt install libfuse2      # depois é só dar duplo-clique no .AppImage
 | | Entrega | Status |
 |---|---|---|
 | **M0** | Dashboard lista posts do blog (novo/publicado) + sincronização horária | ✅ |
-| **M1** | Publicar nas redes | **LinkedIn ✅ · Instagram ✅ · Threads 🔜** |
+| **M1** | Publicar nas redes | **✅ completo — LinkedIn · Instagram · Threads** |
 | **M2** | Métricas: comentários | — |
 | **M3** | Referral: visitas vindas das redes | precisa de analytics no blog |
 
@@ -162,10 +172,11 @@ src/
   secrets.ts     # cofre local de credenciais + parser do keys.txt
   linkedin.ts    # OAuth + publicação no perfil (ugcPosts)
   instagram.ts   # publicação no feed (container→publish) + refresh do token
+  threads.ts     # publicação no Threads (container→publish) + refresh do token
   keys.txt       # credenciais (GITIGNORED — nunca versionar!)
 renderer/
   index.html     # dashboard (tema neon LD Studio) — usa window.api
-assets/          # ícone oficial do app: capacete-de-astronauta.png e derivados PNG/ICO
+assets/          # ícone do app (derivado do logo oficial do blog): capacete-de-astronauta.* PNG/ICO
 dist/            # saída do tsc (gitignored)
 release/         # instaladores gerados pelo electron-builder (gitignored)
 SETUP-REDES.md   # passo a passo para obter as credenciais das redes
