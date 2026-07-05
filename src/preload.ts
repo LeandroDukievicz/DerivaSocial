@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("api", {
   showThumbnail: (filePath: string) => ipcRenderer.invoke("thumbnail:show", filePath),
   linkedinStatus: () => ipcRenderer.invoke("linkedin:status"),
   instagramStatus: () => ipcRenderer.invoke("instagram:status"),
+  threadsStatus: () => ipcRenderer.invoke("threads:status"),
   linkedinConnect: () => ipcRenderer.invoke("linkedin:connect"),
   publish: (payload: { guid: string; network: string; text: string }) => ipcRenderer.invoke("publish", payload),
   schedulePost: (payload: { guid: string; at: string; text: string; networks: string[] }) =>

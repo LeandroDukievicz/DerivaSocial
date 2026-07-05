@@ -6,6 +6,7 @@ import * as thumbnail from "./thumbnail";
 import * as secrets from "./secrets";
 import * as linkedin from "./linkedin";
 import * as instagram from "./instagram";
+import * as threads from "./threads";
 
 // Mesmo nome em dev e empacotado => mesmo userData (~/.config/DerivaSocial),
 // compartilhando posts.json e secrets.json entre `npm start` e o app instalado.
@@ -59,17 +60,19 @@ ipcMain.handle("thumbnail:show", async (_event, filePath: string) => {
 });
 
 // ---- Redes sociais ----
-const REDES_IMPLEMENTADAS = ["linkedin", "instagram"];
+const REDES_IMPLEMENTADAS = ["linkedin", "instagram", "threads"];
 
 async function publishToNetwork(post: store.Post, network: string, text: string): Promise<{ url?: string }> {
   if (network === "linkedin") return linkedin.publish(post, text);
   if (network === "instagram") return instagram.publish(post, text);
+  if (network === "threads") return threads.publish(post, text);
   throw new Error(`Rede "${network}" ainda não implementada (falta o app/token dela).`);
 }
 
 ipcMain.handle("linkedin:status", () => linkedin.status());
 ipcMain.handle("linkedin:connect", () => linkedin.connect());
 ipcMain.handle("instagram:status", () => instagram.status());
+ipcMain.handle("threads:status", () => threads.status());
 ipcMain.handle("publish", async (_event, payload: { guid: string; network: string; text: string }) => {
   const post = await store.getPost(payload.guid);
   if (!post) throw new Error("Post não encontrado.");
@@ -150,6 +153,7 @@ app.whenReady().then(async () => {
   thumbnail.init(dataDir);
   await secrets.init(dataDir, app.getAppPath());
   instagram.maybeRefreshToken().catch((e) => console.error("refresh IG:", e));
+  threads.maybeRefreshToken().catch((e) => console.error("refresh Threads:", e));
   await store.refreshPosts().catch((e) => console.error("refresh inicial:", e));
   // Poll de hora em hora
   setInterval(() => store.refreshPosts().catch((e) => console.error(e)), HORA_MS);

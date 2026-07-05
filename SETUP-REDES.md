@@ -42,7 +42,12 @@ Guarde cada valor num bloco de notas; nada disso vai pro Git. Passos com 🤝 fa
 
 ---
 
-## 3️⃣ META — THREADS (app 2, separado)
+## 3️⃣ META — THREADS (app 2, separado) — ✅ CONCLUÍDO (2026-07-05)
+
+> **Status:** app `derivasocial-threads` criado, tester aceito, token de longa duração gerado no painel
+> (Casos de uso → Acessar a API do Threads → gerador de token) e salvo no `keys.txt`.
+> Publicação implementada em `src/threads.ts` (container → publish, texto até 500 chars,
+> imagem com fallback jpg, renovação automática semanal via `th_refresh_token`).
 
 1. Ter conta no **Threads** (criada do seu IG).
 2. <https://developers.facebook.com> → My Apps → **Create App** → use case **"Access the Threads API"** → nome `derivasocial-threads` → Create.

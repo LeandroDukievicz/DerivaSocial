@@ -160,7 +160,7 @@ a{color:var(--cyan-bright);text-decoration:none}
   <div class="sec"><h2>Posts do blog</h2><div class="rule"></div></div>
   <div class="list" id="list"><div class="empty">carregando…</div></div>
 
-  <div class="foot">M1 · LinkedIn + Instagram ativos · agendamento multi-rede · Threads em breve</div>
+  <div class="foot">M1 · LinkedIn + Instagram + Threads ativos · agendamento multi-rede</div>
 </div>
 
 <script>
@@ -241,7 +241,7 @@ function defaultCopy(p) {
 const PUB_NETS = [
   { id: "linkedin", label: "LinkedIn" },
   { id: "instagram", label: "Instagram" },
-  { id: "threads", label: "Threads (em breve)", off: true },
+  { id: "threads", label: "Threads" },
 ];
 
 const fmtDateTime = (s) => {
@@ -370,6 +370,10 @@ async function doPublish(panel, btn) {
   if (network === "instagram") {
     const st = await window.api.instagramStatus();
     if (!st.configured) { result.innerHTML = "⚠ Instagram sem credenciais (keys.txt)"; return; }
+  }
+  if (network === "threads") {
+    const st = await window.api.threadsStatus();
+    if (!st.configured) { result.innerHTML = "⚠ Threads sem credenciais (keys.txt)"; return; }
   }
 
   btn.disabled = true;

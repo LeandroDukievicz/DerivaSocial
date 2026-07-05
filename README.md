@@ -1,6 +1,6 @@
 # DerivaSocial
 
-App **desktop** que acompanha os posts do blog [Devs à Deriva](https://devsaderiva.com.br) e **publica nas redes sociais** direto do dashboard — hoje com **LinkedIn** e **Instagram** funcionando e **Threads** a caminho. Nas próximas fases: métricas de comentários e referral.
+App **desktop** que acompanha os posts do blog [Devs à Deriva](https://devsaderiva.com.br) e **publica nas redes sociais** direto do dashboard — **LinkedIn**, **Instagram** e **Threads** funcionando. Nas próximas fases: métricas de comentários e referral.
 
 Visual no estilo **dark/neon do dashboard LD Studio**.
 
