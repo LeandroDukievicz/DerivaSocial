@@ -33,6 +33,7 @@ Electron (app .exe / .AppImage)
 │   ├── src/threads.ts               → publicação no Threads + renovação automática do token
 │   ├── src/upcoming.ts              → radar: posts agendados no blog (SSH + psql no VPS)
 │   ├── src/imagefit.ts              → proporção de imagem por rede (mede com sharp + enquadra via proxy)
+│   ├── src/socialimg.ts             → hospeda thumbs geradas no VPS (SSH) p/ usar nas publicações
 │   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
 └── renderer      (renderer/index.html) → dashboard neon (posts + thumbnails + publicação)
         (renderer/post.html)  → janela de detalhe do post (clique no card abre ampliado)
@@ -42,7 +43,7 @@ Electron (app .exe / .AppImage)
 - **Sem servidor HTTP:** o renderer fala com o backend por **IPC** (`contextIsolation` ligado, sem `nodeIntegration` — seguro). Exceção: durante o OAuth do LinkedIn, um servidor local em `localhost:8000` sobe **apenas** para receber o callback e é fechado em seguida.
 - **Poll horário:** o main faz `refreshPosts()` ao abrir e a cada 1h (`setInterval`).
 - **Dados:** salvos em `app.getPath("userData")` (`~/.config/DerivaSocial/`): `posts.json` (dedup por `guid` do RSS — nunca duplica), `secrets.json` (tokens) e `thumbnails/`.
-- **Thumbnails:** geradas a partir da imagem do post, com sugestões locais de texto curto.
+- **Thumbnails:** geradas a partir da imagem do post, com sugestões locais de texto curto. Depois de gerar, dá pra clicar em **"✔ Usar esta thumb no post"**: ela sobe pro VPS (pasta `/var/www/social`, servida em `devsaderiva.com.br/social/` — isolada do blog) e passa a ser usada **no lugar da imagem do RSS** nas publicações (IG/Threads via URL; LinkedIn via upload direto como thumbnail do card). O post ganha o marcador 🖼 e um botão de **voltar pra imagem original**. O blog não é alterado em nada. Thumbs com +60 dias são apagadas do servidor automaticamente (as redes copiam a imagem ao publicar — apagar a origem não afeta posts já publicados).
 
 ---
 
@@ -78,7 +79,7 @@ host : root@IP_DO_SERVIDOR
 ### LinkedIn ✅
 
 - **Como conecta:** botão **"in Conectar LinkedIn"** no topo do dashboard → abre o navegador → você autoriza → o app captura o callback (`localhost:8000`), troca pelo **token (60 dias)** e descobre seu URN. O botão passa a mostrar seu nome e a validade.
-- **Como publica:** compartilhamento de **link** no **perfil pessoal** (`/v2/ugcPosts`, escopo `w_member_social`) — o LinkedIn monta o preview do artigo com a imagem do blog.
+- **Como publica:** compartilhamento de **link** no **perfil pessoal** (escopo `w_member_social`) pelo endpoint novo **`/rest/posts`** — que aceita **thumbnail personalizada** no card do artigo (a thumb escolhida sobe direto pro LinkedIn via `/rest/images`). Sem thumb escolhida, o LinkedIn monta o preview com a imagem do blog, como sempre. Se o endpoint novo falhar, o app **cai automaticamente pro formato antigo** (`/v2/ugcPosts`) e registra o aviso no log — nunca deixa de publicar por causa da migração.
 - **Decisão registrada:** publicar como *Página* exigiria o produto "Community Management API" (review manual da LinkedIn) — optamos pelo perfil pessoal (sem burocracia e com alcance melhor).
 - **Token expirou?** O botão vira "in ⚠ reconectar" — é só clicar e autorizar de novo.
 
