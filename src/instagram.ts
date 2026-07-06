@@ -2,6 +2,7 @@
 // Fluxo: criar container de mídia -> aguardar processamento -> publicar -> obter permalink.
 // Token: gerado no painel Meta (60 dias) e renovado automaticamente (ig_refresh_token).
 import * as secrets from "./secrets";
+import * as imagefit from "./imagefit";
 import type { Post } from "./store";
 
 const G = "https://graph.instagram.com/v23.0";
@@ -68,21 +69,20 @@ export async function publish(post: Post, caption: string): Promise<{ id: string
   const userId = await ensureUser();
   const text = caption.slice(0, CAPTION_MAX);
 
-  // 1) container de mídia — tenta a URL original; se falhar (ex.: webp), converte p/ JPEG via proxy
-  let creationId: string;
-  try {
-    creationId = await createContainer(userId, post.image, text);
-  } catch (first) {
-    if (/\.jpe?g(\?|$)/i.test(post.image)) throw first;
-    const jpegUrl = `https://images.weserv.nl/?url=${encodeURIComponent(post.image)}&output=jpg&q=88`;
+  // 1) container de mídia — tenta as URLs candidatas em ordem (imagefit já resolve
+  //    proporção fora do limite do IG e conversão webp→jpg)
+  const urls = await imagefit.candidates("instagram", post.image);
+  let creationId: string | undefined;
+  const falhas: string[] = [];
+  for (const u of urls) {
     try {
-      creationId = await createContainer(userId, jpegUrl, text);
-    } catch (second) {
-      throw new Error(
-        `Falha ao criar mídia. Original: ${(first as Error).message} · Convertida(jpg): ${(second as Error).message}`,
-      );
+      creationId = await createContainer(userId, u, text);
+      break;
+    } catch (e) {
+      falhas.push((e as Error).message);
     }
   }
+  if (!creationId) throw new Error(`Falha ao criar mídia. ${falhas.join(" · ")}`);
 
   // 2) aguarda o container ficar pronto (imagens costumam ser instantâneas)
   await waitContainer(creationId);

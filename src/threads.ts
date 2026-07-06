@@ -2,6 +2,7 @@
 // Fluxo: criar container (TEXT ou IMAGE) -> aguardar processamento -> publicar -> obter permalink.
 // Token: gerado no painel Meta (60 dias) e renovado automaticamente (th_refresh_token).
 import * as secrets from "./secrets";
+import * as imagefit from "./imagefit";
 import type { Post } from "./store";
 
 const G = "https://graph.threads.net/v1.0";
@@ -67,24 +68,20 @@ export async function publish(post: Post, text: string): Promise<{ id: string; u
   const userId = await ensureUser();
   const body = text.slice(0, TEXT_MAX);
 
-  // 1) container — com imagem se houver; se a imagem falhar (ex.: webp), converte p/ JPEG via proxy
-  let creationId: string;
+  // 1) container — com imagem se houver; imagefit resolve proporção fora do limite
+  //    e conversão webp→jpg; sem imagem (ou se todas falharem), publica só o texto
+  let creationId: string | undefined;
   if (post.image) {
-    try {
-      creationId = await createContainer(userId, body, post.image);
-    } catch (first) {
-      if (/\.jpe?g(\?|$)/i.test(post.image)) throw first;
-      const jpegUrl = `https://images.weserv.nl/?url=${encodeURIComponent(post.image)}&output=jpg&q=88`;
+    for (const u of await imagefit.candidates("threads", post.image)) {
       try {
-        creationId = await createContainer(userId, body, jpegUrl);
+        creationId = await createContainer(userId, body, u);
+        break;
       } catch {
-        // último recurso: publica sem imagem, só o texto com o link
-        creationId = await createContainer(userId, body);
+        /* tenta a próxima candidata */
       }
     }
-  } else {
-    creationId = await createContainer(userId, body);
   }
+  if (!creationId) creationId = await createContainer(userId, body);
 
   // 2) aguarda o container ficar pronto (texto é instantâneo; imagem pode demorar)
   await waitContainer(creationId);
