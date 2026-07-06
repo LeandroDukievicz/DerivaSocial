@@ -171,7 +171,7 @@ a{color:var(--cyan-bright);text-decoration:none}
 
   <div class="tabs" role="tablist" aria-label="Filtro de posts">
     <button class="tab active" data-tab="ativos" type="button">Ativos <span id="tab-ativos">0</span></button>
-    <button class="tab" data-tab="arquivados" type="button">Arquivados <span id="tab-arquivados">0</span></button>
+    <button class="tab" data-tab="arquivados" type="button">Postados e arquivados <span id="tab-arquivados">0</span></button>
   </div>
 
   <div class="sec"><h2 id="section-title">Posts ativos</h2><div class="rule"></div></div>
@@ -225,8 +225,10 @@ let POSTS = {};
 async function render() {
   const [posts, stats] = await Promise.all([window.api.getPosts(), window.api.getStats()]);
   POSTS = Object.fromEntries(posts.map((p) => [p.guid, p]));
-  const ativos = posts.filter((p) => p.status !== "lido");
-  const arquivados = posts.filter((p) => p.status === "lido");
+  // postado (publicado) vai automaticamente para a seção "Postados e arquivados"
+  const arquivado = (p) => p.status === "lido" || p.status === "publicado";
+  const ativos = posts.filter((p) => !arquivado(p));
+  const arquivados = posts.filter(arquivado);
   const visible = ACTIVE_TAB === "arquivados" ? arquivados : ativos;
   document.getElementById("s-total").textContent = stats.total;
   document.getElementById("s-novos").textContent = stats.novos;
@@ -236,9 +238,9 @@ async function render() {
   document.getElementById("s-read").textContent = stats.arquivados ?? arquivados.length;
   document.getElementById("tab-ativos").textContent = ativos.length;
   document.getElementById("tab-arquivados").textContent = arquivados.length;
-  document.getElementById("section-title").textContent = ACTIVE_TAB === "arquivados" ? "Posts arquivados" : "Posts ativos";
+  document.getElementById("section-title").textContent = ACTIVE_TAB === "arquivados" ? "Postados e arquivados" : "Posts ativos";
   const list = document.getElementById("list");
-  list.innerHTML = visible.length ? visible.map(card).join("") : '<div class="empty">' + (ACTIVE_TAB === "arquivados" ? "nenhum post arquivado" : "nenhum post ativo") + "</div>";
+  list.innerHTML = visible.length ? visible.map(card).join("") : '<div class="empty">' + (ACTIVE_TAB === "arquivados" ? "nada postado ou arquivado ainda" : "nenhum post ativo") + "</div>";
 }
 
 // ---- LinkedIn: conexão ----
