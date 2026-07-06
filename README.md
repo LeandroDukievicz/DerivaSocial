@@ -32,8 +32,10 @@ Electron (app .exe / .AppImage)
 │   ├── src/instagram.ts             → publicação no feed + renovação automática do token
 │   ├── src/threads.ts               → publicação no Threads + renovação automática do token
 │   ├── src/upcoming.ts              → radar: posts agendados no blog (SSH + psql no VPS)
+│   ├── src/imagefit.ts              → proporção de imagem por rede (mede com sharp + enquadra via proxy)
 │   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
 └── renderer      (renderer/index.html) → dashboard neon (posts + thumbnails + publicação)
+        (renderer/post.html)  → janela de detalhe do post (clique no card abre ampliado)
         chama o backend via  window.api.*  (getPosts, publish, linkedinConnect, …)
 ```
 
@@ -84,7 +86,7 @@ host : root@IP_DO_SERVIDOR
 
 - **Caminho:** "Instagram API with Instagram Login" (`graph.instagram.com`) na conta profissional **@devs_a_deriva**. O token é gerado no painel da Meta (seção *Gerar tokens de acesso*) e colado no `keys.txt`.
 - **Como publica:** cria um **container de mídia** com a **imagem do post** + legenda → aguarda processar → publica → captura o **permalink**.
-- **Imagem:** o Instagram **exige imagem** (post sem imagem no RSS não publica lá) e só aceita **JPEG** — como as capas do blog são `.webp`, o app tenta a original e, se recusada, **converte para JPG automaticamente** (proxy `images.weserv.nl`) e tenta de novo.
+- **Imagem:** o Instagram **exige imagem** (post sem imagem no RSS não publica lá), só aceita **JPEG** e só aceita **proporção entre 4:5 e 1.91:1**. O app mede a capa antes de subir (`imagefit.ts`): se a proporção estourar o limite, **enquadra automaticamente** num canvas válido (letterbox com o fundo escuro da marca, 1080px, via proxy `images.weserv.nl`), já convertendo `.webp` → JPEG; se estiver ok, tenta a original e converte só o formato se for recusada.
 - **Renovação automática do token:** o token de 60 dias é renovado **toda semana** no start do app (`ig_refresh_token`) — não precisa voltar ao painel da Meta.
 - **Limitações do próprio Instagram:** o link na legenda **não é clicável** (vale para todo mundo); legenda limitada a 2.200 caracteres (o app trunca).
 
@@ -92,7 +94,7 @@ host : root@IP_DO_SERVIDOR
 
 - **Caminho:** app Meta próprio com o use case **"Acessar a API do Threads"** (`graph.threads.net`), publicando na conta **@devs_a_deriva**. O token é gerado no painel da Meta (gerador de token do caso de uso, exige *Threads Tester* aceito) e colado no `keys.txt`.
 - **Como publica:** cria um **container** (`IMAGE` com a capa do post, ou `TEXT` se não houver imagem) → aguarda processar → publica → captura o **permalink**.
-- **Imagem é opcional:** se a capa `.webp` for recusada, converte para JPG (proxy `images.weserv.nl`); se ainda assim falhar, publica **só o texto com o link** — nunca deixa de postar por causa da imagem.
+- **Imagem é opcional:** passa pelo mesmo `imagefit.ts` do Instagram (limite do Threads é folgado, 10:1 — quase nunca precisa enquadrar); se mesmo assim a imagem falhar, publica **só o texto com o link** — nunca deixa de postar por causa da imagem.
 - **Renovação automática do token:** mesma rotina do Instagram, **toda semana** no start do app (`th_refresh_token`).
 - **Limite do Threads:** texto de até **500 caracteres** (o app trunca o excedente) — para o Threads vale encurtar o texto no painel pra garantir que o link não seja cortado.
 
@@ -103,6 +105,10 @@ host : root@IP_DO_SERVIDOR
 3. **Ou agendar:** escolhe **data/hora** + marca as **redes** (checkboxes) → **⏰ Agendar** — no horário, o app dispara e publica em **todas as redes selecionadas em paralelo**.
 4. O resultado aparece com o **link da publicação**; o chip da rede fica verde ✓ e o post vira "publicado".
 5. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn, no Instagram **e** no Threads; nunca duplica na mesma rede.
+
+### 🔍 Janela de detalhe do post
+
+Clicar no **corpo do card** (fora dos botões) abre o post numa **janela própria e ampliada** (`renderer/post.html`): imagem grande, título/resumo completos, chips das redes (clicáveis quando publicado — abrem a publicação no navegador), **um botão de publicar por rede**, agendamento, gerador de thumbnail, arquivar e "Abrir no blog". Uma janela por post (clicar de novo só foca a existente); publicou/agendou em qualquer janela, as outras **atualizam sozinhas**.
 
 ### 🗂 Postados e arquivados
 
