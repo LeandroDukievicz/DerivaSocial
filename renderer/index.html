@@ -187,8 +187,9 @@ const esc = (s) => (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 let ACTIVE_TAB = "ativos";
 
 function card(p) {
-  const thumb = p.image
-    ? '<img class="thumb" src="' + esc(p.image) + '" alt="" loading="lazy">'
+  const shownImage = p.imageOverride || p.image;
+  const thumb = shownImage
+    ? '<img class="thumb" src="' + esc(shownImage) + '" alt="" loading="lazy">'
     : '<div class="thumb ph">sem imagem</div>';
   const thumbDisabled = p.image ? "" : ' disabled title="sem imagem no RSS"';
   const chips = REDES.map((r) => {
@@ -200,7 +201,8 @@ function card(p) {
     '<div class="info">' +
       '<div class="t">' + esc(p.title) + "</div>" +
       '<div class="meta"><span>' + fmtDate(p.publishedAt || p.discoveredAt) + "</span>" + (p.category ? '<span>#' + esc(p.category) + "</span>" : "") +
-        (p.upcoming && p.blogScheduledAt ? '<span title="agendado no dashboard do blog">📅 no blog: ' + fmtDateTime(p.blogScheduledAt) + "</span>" : "") + "</div>" +
+        (p.upcoming && p.blogScheduledAt ? '<span title="agendado no dashboard do blog">📅 no blog: ' + fmtDateTime(p.blogScheduledAt) + "</span>" : "") +
+        (p.imageOverride ? '<span title="usando thumb personalizada nas redes — abra o post pra reverter">🖼 thumb própria</span>' : "") + "</div>" +
       '<div class="chips">' + chips + "</div>" +
     "</div>" +
     '<div class="side">' +
@@ -540,6 +542,23 @@ document.getElementById("list").addEventListener("click", async (e) => {
   if (btn.dataset.showThumb !== undefined) {
     const result = btn.closest(".thumb-result");
     if (result && result.dataset.path) await window.api.showThumbnail(result.dataset.path);
+    return;
+  }
+
+  if (btn.dataset.useThumb !== undefined) {
+    const panel = btn.closest(".thumb-panel");
+    const result = btn.closest(".thumb-result");
+    if (!panel || !result || !result.dataset.path) return;
+    btn.disabled = true;
+    btn.textContent = "… enviando";
+    try {
+      await window.api.useThumbnail({ guid: panel.dataset.guid, path: result.dataset.path });
+      await render();
+    } catch (err) {
+      alert("Usar thumb: " + (err.message || err));
+      btn.disabled = false;
+      btn.textContent = "✔ Usar no post";
+    }
   }
 });
 
@@ -600,6 +619,7 @@ async function generateThumbnail(panel, btn) {
     result.dataset.path = out.path;
     result.innerHTML = '<div><img src="' + out.dataUrl + '" alt="Thumbnail gerada">' +
       '<div class="path">' + esc(out.width + "x" + out.height + " · " + out.path) + "</div>" +
+      '<button class="btn" data-use-thumb type="button" style="margin-top:8px;margin-right:6px">✔ Usar no post</button>' +
       '<button class="btn" data-show-thumb type="button">Mostrar arquivo</button></div>';
   } catch (err) {
     result.textContent = "erro ao gerar: " + (err.message || String(err));

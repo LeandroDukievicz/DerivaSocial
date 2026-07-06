@@ -161,9 +161,16 @@ const isPub = (id) => POST.networks && POST.networks[id] && POST.networks[id].st
 
 function heroHtml() {
   const p = POST;
-  const img = p.image
-    ? '<img class="hero" src="' + esc(p.image) + '" alt="">'
+  const shownImage = p.imageOverride || p.image;
+  const img = shownImage
+    ? '<img class="hero" src="' + esc(shownImage) + '" alt="">'
     : '<div class="hero ph">sem imagem no RSS</div>';
+  const overrideRow = p.imageOverride
+    ? '<div class="row" style="margin-top:10px">' +
+        '<span class="chip ok" title="' + esc(p.imageOverride) + '"><span class="dot"></span>thumb personalizada ativa — é ela que vai pras redes</span>' +
+        '<button class="btn" data-revert-img type="button">↩ Voltar pra imagem original</button>' +
+      "</div>"
+    : "";
   const chips = PUB_NETS.map((n) => {
     const st = p.networks && p.networks[n.id];
     const ok = st && st.status === "published";
@@ -179,7 +186,7 @@ function heroHtml() {
       (p.upcoming && p.blogScheduledAt ? '<span title="agendado no dashboard do blog">📅 entra no blog: ' + fmtDateTime(p.blogScheduledAt) + "</span>" : "") +
     "</div>" +
     (p.summary ? '<p class="summary">' + esc(p.summary) + "</p>" : "") +
-    '<div class="chips">' + chips + "</div>";
+    '<div class="chips">' + chips + "</div>" + overrideRow;
 }
 
 function pubSectionHtml() {
@@ -393,7 +400,10 @@ async function generateThumbnail(btn) {
     result.dataset.path = out.path;
     result.innerHTML = '<div><img src="' + out.dataUrl + '" alt="Thumbnail gerada">' +
       '<div class="path">' + esc(out.width + "x" + out.height + " · " + out.path) + "</div>" +
-      '<button class="btn" data-show-thumb type="button">Mostrar arquivo</button></div>';
+      '<div class="row" style="margin-top:8px">' +
+        '<button class="btn" data-use-thumb type="button">✔ Usar esta thumb no post</button>' +
+        '<button class="btn" data-show-thumb type="button">Mostrar arquivo</button>' +
+      "</div></div>";
   } catch (err) {
     result.textContent = "erro ao gerar: " + (err.message || String(err));
   } finally {
@@ -424,6 +434,27 @@ document.addEventListener("click", async (e) => {
   if (btn.dataset.showThumb !== undefined) {
     const r = btn.closest(".result");
     if (r && r.dataset.path) await window.api.showThumbnail(r.dataset.path);
+    return;
+  }
+  if (btn.dataset.useThumb !== undefined) {
+    const r = btn.closest(".result");
+    if (!r || !r.dataset.path) return;
+    btn.disabled = true;
+    btn.textContent = "… enviando pro servidor";
+    try {
+      await window.api.useThumbnail({ guid: GUID, path: r.dataset.path });
+      await renderAll();
+    } catch (err) {
+      alert("Usar thumb: " + (err.message || err));
+      btn.disabled = false;
+      btn.textContent = "✔ Usar esta thumb no post";
+    }
+    return;
+  }
+  if (btn.dataset.revertImg !== undefined) {
+    btn.disabled = true;
+    try { await window.api.revertImage(GUID); await renderAll(); }
+    catch (err) { alert("Reverter: " + (err.message || err)); btn.disabled = false; }
     return;
   }
 });

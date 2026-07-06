@@ -8,6 +8,7 @@ import * as linkedin from "./linkedin";
 import * as instagram from "./instagram";
 import * as threads from "./threads";
 import * as upcoming from "./upcoming";
+import * as socialimg from "./socialimg";
 
 // Mesmo nome em dev e empacotado => mesmo userData (~/.config/DerivaSocial),
 // compartilhando posts.json e secrets.json entre `npm start` e o app instalado.
@@ -38,7 +39,11 @@ function createWindow(): void {
   });
   win.setMenuBarVisibility(false);
   win.loadFile(path.join(app.getAppPath(), "renderer", "index.html"));
-  win.on("closed", () => (win = null));
+  win.on("closed", () => {
+    win = null;
+    // fechar a janela principal derruba também todas as janelas de detalhe
+    for (const w of detailWins.values()) if (!w.isDestroyed()) w.close();
+  });
 }
 
 // Avisa todas as janelas que os posts mudaram (menos a que originou a ação,
@@ -114,6 +119,21 @@ ipcMain.handle("thumbnail:show", async (_event, filePath: string) => {
   if (!thumbnail.isManagedPath(filePath)) throw new Error("Arquivo fora da pasta de thumbnails.");
   shell.showItemInFolder(filePath);
 });
+// Usa a thumb gerada como imagem do post nas redes: envia pro VPS e grava a URL pública
+ipcMain.handle("thumbnail:use", async (event, payload: { guid: string; path: string }) => {
+  if (!thumbnail.isManagedPath(payload.path)) throw new Error("Arquivo fora da pasta de thumbnails.");
+  const post = await store.getPost(payload.guid);
+  if (!post) throw new Error("Post não encontrado.");
+  const url = await socialimg.uploadThumb(payload.path);
+  const r = await store.setImageOverride(payload.guid, url);
+  broadcastPostsUpdated(event.sender);
+  return r;
+});
+ipcMain.handle("thumbnail:revert", async (event, guid: string) => {
+  const r = await store.setImageOverride(guid, null);
+  broadcastPostsUpdated(event.sender);
+  return r;
+});
 
 // ---- Radar do blog (posts agendados no dashboard) ----
 async function syncRadar(): Promise<void> {
@@ -129,9 +149,11 @@ async function syncRadar(): Promise<void> {
 const REDES_IMPLEMENTADAS = ["linkedin", "instagram", "threads"];
 
 async function publishToNetwork(post: store.Post, network: string, text: string): Promise<{ url?: string }> {
-  if (network === "linkedin") return linkedin.publish(post, text);
-  if (network === "instagram") return instagram.publish(post, text);
-  if (network === "threads") return threads.publish(post, text);
+  // thumb personalizada escolhida pelo usuário substitui a imagem do RSS na publicação
+  const p = post.imageOverride ? { ...post, image: post.imageOverride } : post;
+  if (network === "linkedin") return linkedin.publish(p, text);
+  if (network === "instagram") return instagram.publish(p, text);
+  if (network === "threads") return threads.publish(p, text);
   throw new Error(`Rede "${network}" ainda não implementada (falta o app/token dela).`);
 }
 
@@ -247,6 +269,7 @@ app.whenReady().then(async () => {
   await secrets.init(dataDir, app.getAppPath());
   instagram.maybeRefreshToken().catch((e) => console.error("refresh IG:", e));
   threads.maybeRefreshToken().catch((e) => console.error("refresh Threads:", e));
+  socialimg.cleanupOld().catch(() => {}); // faxina das thumbs antigas no servidor (não-fatal)
   await syncRadar();
   await store.refreshPosts().catch((e) => console.error("refresh inicial:", e));
   // Poll de hora em hora (radar do blog + RSS)

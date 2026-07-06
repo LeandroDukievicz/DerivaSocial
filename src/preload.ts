@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("api", {
   suggestThumbnailTexts: (guid: string) => ipcRenderer.invoke("thumbnail:suggestions", guid),
   generateThumbnail: (payload: { guid: string; text: string; format: string }) => ipcRenderer.invoke("thumbnail:generate", payload),
   showThumbnail: (filePath: string) => ipcRenderer.invoke("thumbnail:show", filePath),
+  useThumbnail: (payload: { guid: string; path: string }) => ipcRenderer.invoke("thumbnail:use", payload),
+  revertImage: (guid: string) => ipcRenderer.invoke("thumbnail:revert", guid),
   linkedinStatus: () => ipcRenderer.invoke("linkedin:status"),
   instagramStatus: () => ipcRenderer.invoke("instagram:status"),
   threadsStatus: () => ipcRenderer.invoke("threads:status"),

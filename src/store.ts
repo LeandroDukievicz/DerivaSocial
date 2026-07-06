@@ -26,6 +26,7 @@ export interface Post {
   readAt?: string;
   upcoming?: boolean; // ainda não está no ar — só agendado no dashboard do blog
   blogScheduledAt?: string; // ISO UTC — quando o post entra no ar no blog
+  imageOverride?: string; // URL pública da thumb gerada — usada NO LUGAR de image ao publicar nas redes
   status: Status;
   networks: Record<string, { status: string; url?: string }>;
   schedule?: Schedule;
@@ -68,6 +69,16 @@ export async function markPublished(guid: string, network: string, url?: string)
   if (!post) return null;
   post.networks[network] = { status: "published", url };
   if (post.status !== "lido") post.status = "publicado";
+  await save(data);
+  return post;
+}
+
+/** Define (URL pública) ou remove (null) a thumb personalizada usada nas publicações. */
+export async function setImageOverride(guid: string, url: string | null): Promise<Post | null> {
+  const data = await load();
+  const post = data[guid];
+  if (!post) return null;
+  post.imageOverride = url ?? undefined;
   await save(data);
   return post;
 }
