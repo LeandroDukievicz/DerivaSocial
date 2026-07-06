@@ -104,6 +104,15 @@ host : root@IP_DO_SERVIDOR
 4. O resultado aparece com o **link da publicação**; o chip da rede fica verde ✓ e o post vira "publicado".
 5. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn, no Instagram **e** no Threads; nunca duplica na mesma rede.
 
+### 🗂 Arquivar posts (lidos)
+
+Para tirar da frente posts que você não vai trabalhar agora:
+
+- Botão **"Marcar como lido"** no card → o post ganha status **lido** e sai da lista ativa.
+- O painel tem abas **Ativos / Arquivados** (com contadores) e o card **"Arquivados"** nas estatísticas.
+- Na aba Arquivados, o botão **"Restaurar"** devolve o post pra lista ativa com o status correto (novo/agendado/publicado, conforme o caso).
+- Arquivar não apaga nada: publicações já feitas e agendamentos continuam registrados no post.
+
 ### ⏰ Agendamento — como funciona
 
 - O post agendado ganha o status **agendado** (badge lilás + card "Agendados" nas estatísticas) e o painel mostra data/redes/texto com opção de **cancelar**.
