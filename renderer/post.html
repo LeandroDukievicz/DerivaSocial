@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DerivaSocial — post</title>
+<style>
+:root{
+  --bg-page:#010212; --bg-deep:#040d1e; --bg-card:#081A3A;
+  --cyan:#00ffff; --cyan-bright:#6CF2FF; --magenta:#ff00cc; --pink:#FF4AC4;
+  --purple:#cc00ff; --lilac:#b88cff; --teal:#006d77;
+  --txt:#e6f6ff; --muted:#7f93b0; --faint:#4f5b66;
+  --line:rgba(108,242,255,.14); --line2:rgba(108,242,255,.28);
+  --ok:#34d399; --warn:#f59e0b;
+  --grad:linear-gradient(135deg,var(--cyan),var(--magenta));
+  --mono:ui-monospace,"Roboto Mono","Cascadia Code",Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(720px 420px at 12% -6%, rgba(0,255,255,.10), transparent 42%),
+    radial-gradient(680px 460px at 108% 12%, rgba(255,0,204,.10), transparent 46%),
+    radial-gradient(600px 500px at 50% 120%, rgba(204,0,255,.07), transparent 55%),
+    var(--bg-page);
+  color:var(--txt); font-family:var(--sans); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; user-select:none;
+}
+a{color:var(--cyan-bright);text-decoration:none}
+.wrap{max-width:920px;margin:0 auto;padding:24px 26px 60px}
+
+/* Header */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.logo{width:34px;height:34px;border-radius:9px;object-fit:cover;display:block;
+  box-shadow:0 0 18px rgba(0,255,255,.30),0 0 26px rgba(255,0,204,.22)}
+.brand h1{margin:0;font-size:1.05rem;letter-spacing:.3px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.brand p{margin:1px 0 0;font-size:.7rem;color:var(--muted);font-family:var(--mono)}
+.spacer{flex:1}
+.btn{cursor:pointer;font-family:var(--sans);font-weight:600;font-size:.84rem;color:var(--txt);
+  background:rgba(8,26,58,.7);border:1px solid var(--line2);padding:9px 15px;border-radius:10px;transition:.18s}
+.btn:hover{border-color:var(--cyan);box-shadow:0 0 16px rgba(0,255,255,.25);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.go{font-size:.9rem;padding:11px 18px}
+
+/* Status badge */
+.status{font-family:var(--mono);font-size:.68rem;font-weight:800;letter-spacing:.05em;
+  padding:4px 10px;border-radius:999px;text-transform:uppercase}
+.status.novo{color:#02121f;background:linear-gradient(135deg,var(--warn),var(--pink))}
+.status.publicado{color:#02121f;background:linear-gradient(135deg,var(--ok),var(--cyan))}
+.status.agendado{color:#02121f;background:linear-gradient(135deg,var(--lilac),var(--purple))}
+.status.lido{color:#dce7f3;background:linear-gradient(135deg,#1f2937,#334155)}
+.status.chegando{color:#02121f;background:linear-gradient(135deg,var(--cyan),var(--lilac))}
+
+/* Hero do post */
+.hero{width:100%;max-height:340px;object-fit:cover;border-radius:16px;display:block;
+  border:1px solid var(--line);background:var(--bg-deep);
+  box-shadow:0 10px 40px rgba(0,0,0,.5),0 0 24px rgba(0,255,255,.06)}
+.hero.ph{height:150px;display:grid;place-items:center;color:var(--faint);font-family:var(--mono);font-size:.78rem}
+.title{margin:16px 0 6px;font-size:1.45rem;font-weight:800;line-height:1.28;color:#eaffff}
+.meta{font-size:.8rem;color:var(--muted);font-family:var(--mono);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.summary{margin:0 0 14px;color:var(--muted);font-size:.95rem;max-width:70ch}
+
+/* Chips das redes */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.chip{font-family:var(--mono);font-size:.72rem;font-weight:700;padding:5px 12px;border-radius:999px;
+  border:1px solid var(--line2);color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.chip.pend .dot{background:var(--warn)}
+.chip.ok{color:var(--ok);border-color:rgba(52,211,153,.4);cursor:pointer} .chip.ok .dot{background:var(--ok)}
+a.chip.ok:hover{box-shadow:0 0 14px rgba(52,211,153,.25)}
+
+/* Seções */
+.sec{display:flex;align-items:center;gap:10px;margin:22px 2px 12px}
+.sec h2{margin:0;font-size:.8rem;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-family:var(--mono)}
+.sec .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+.panel{background:var(--bg-card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.field{display:grid;gap:7px;margin-bottom:12px}
+.field label{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.field textarea,.field select,.field input[type=datetime-local]{width:100%;background:rgba(1,2,18,.62);border:1px solid var(--line2);
+  color:var(--txt);border-radius:10px;padding:11px 13px;font:600 .94rem var(--sans);outline:none}
+.field textarea{min-height:130px;resize:vertical;line-height:1.4}
+.field textarea:focus,.field select:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.12)}
+.field select option{color:#0a1220;background:#eef3f8}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row input[type=datetime-local]{width:auto;background:rgba(1,2,18,.62);border:1px solid var(--line2);
+  color:var(--txt);border-radius:10px;padding:10px 12px;font:600 .88rem var(--sans);outline:none}
+.row input[type=datetime-local]:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.12)}
+.ck{display:inline-flex;gap:6px;align-items:center;font-size:.82rem;font-weight:600;color:var(--txt);
+  border:1px solid var(--line);padding:9px 12px;border-radius:9px;cursor:pointer;user-select:none}
+.ck input{accent-color:#00ffff}
+.ck.off{opacity:.4;cursor:not-allowed}
+.divider{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:var(--faint);
+  font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.14em}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.schedinfo{font-family:var(--mono);font-size:.94rem;color:var(--lilac);padding:12px 14px;
+  border:1px dashed var(--line2);border-radius:10px;background:rgba(204,0,255,.05);margin-bottom:12px}
+.result{margin-top:14px;min-height:52px;border:1px dashed var(--line2);border-radius:12px;
+  color:var(--muted);font-family:var(--mono);font-size:.76rem;padding:12px 14px;background:rgba(1,2,18,.28)}
+.result img{max-width:340px;width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+.result .path{margin-top:8px;word-break:break-all;color:var(--muted);font-size:.66rem;user-select:text}
+.result .btn{margin-top:8px}
+.hint{margin-top:10px;color:var(--faint);font-family:var(--mono);font-size:.7rem}
+.suggestions{display:flex;gap:7px;flex-wrap:wrap;margin:2px 0 12px}
+.suggestion{font-family:var(--sans);font-size:.76rem;font-weight:700;color:var(--txt);background:rgba(0,255,255,.08);
+  border:1px solid var(--line2);border-radius:999px;padding:6px 10px;cursor:pointer}
+.suggestion:hover{border-color:var(--cyan);color:#fff}
+.empty{text-align:center;color:var(--muted);padding:50px 0;font-family:var(--mono);font-size:.85rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <img class="logo" src="icon.png" alt="DerivaSocial">
+    <div class="brand">
+      <h1>DerivaSocial</h1>
+      <p>detalhe do post</p>
+    </div>
+    <div class="spacer"></div>
+    <span class="status" id="status-badge" hidden></span>
+    <button class="btn" id="open-blog" hidden>Abrir no blog ↗</button>
+    <button class="btn" id="toggle-read" hidden></button>
+  </div>
+  <div id="content"><div class="empty">carregando…</div></div>
+</div>
+
+<script>
+const GUID = new URLSearchParams(location.search).get("guid");
+const PUB_NETS = [
+  { id: "linkedin", label: "LinkedIn" },
+  { id: "instagram", label: "Instagram" },
+  { id: "threads", label: "Threads" },
+];
+const esc = (s) => (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtDate = (s) => { if (!s) return ""; const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); };
+const fmtDateTime = (s) => {
+  const d = new Date(s);
+  return isNaN(d) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
+// datetime-local usa horário LOCAL no formato YYYY-MM-DDTHH:mm
+function localDTAt(ts) {
+  const d = new Date(ts);
+  d.setSeconds(0, 0);
+  const p = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+const localDT = (min) => localDTAt(Date.now() + min * 60000);
+function defaultCopy(p) {
+  const sum = (p.summary || "").trim();
+  const tag = p.category ? " #" + p.category.replace(/\s+/g, "") : "";
+  return p.title + "\n\n" + (sum ? sum + "\n\n" : "") + "Leia no blog 👇\n" + p.url + "\n\n#DevsADeriva" + tag;
+}
+
+let POST = null;
+let SUGGESTIONS = null; // cache das sugestões de thumbnail (carrega 1x)
+
+const isPub = (id) => POST.networks && POST.networks[id] && POST.networks[id].status === "published";
+
+function heroHtml() {
+  const p = POST;
+  const img = p.image
+    ? '<img class="hero" src="' + esc(p.image) + '" alt="">'
+    : '<div class="hero ph">sem imagem no RSS</div>';
+  const chips = PUB_NETS.map((n) => {
+    const st = p.networks && p.networks[n.id];
+    const ok = st && st.status === "published";
+    const inner = '<span class="dot"></span>' + n.label + (ok ? " ✓" : "");
+    return ok && st.url
+      ? '<a class="chip ok" href="#" data-ext data-url="' + esc(st.url) + '" title="abrir: ' + esc(st.url) + '">' + inner + "</a>"
+      : '<span class="chip ' + (ok ? "ok" : "pend") + '">' + inner + "</span>";
+  }).join("");
+  return img +
+    '<div class="title">' + esc(p.title) + "</div>" +
+    '<div class="meta"><span>' + fmtDate(p.publishedAt || p.discoveredAt) + "</span>" +
+      (p.category ? "<span>#" + esc(p.category) + "</span>" : "") +
+      (p.upcoming && p.blogScheduledAt ? '<span title="agendado no dashboard do blog">📅 entra no blog: ' + fmtDateTime(p.blogScheduledAt) + "</span>" : "") +
+    "</div>" +
+    (p.summary ? '<p class="summary">' + esc(p.summary) + "</p>" : "") +
+    '<div class="chips">' + chips + "</div>";
+}
+
+function pubSectionHtml() {
+  const p = POST;
+  const up = !!p.upcoming;
+
+  // Agendamento pendente: resumo + cancelar
+  if (p.schedule && p.schedule.status === "pending") {
+    const s = p.schedule;
+    return sec("Publicação agendada") + '<div class="panel">' +
+      '<div class="schedinfo">⏰ ' + fmtDateTime(s.at) + " → " + s.networks.join(" + ") + "</div>" +
+      '<div class="field"><label>Texto que será publicado</label>' +
+        '<textarea data-pub-text readonly style="opacity:.75">' + esc(s.text) + "</textarea></div>" +
+      '<div class="row"><button class="btn go" data-schedule-cancel type="button">✖ Cancelar agendamento</button></div>' +
+      '<div class="hint">disparo automático nas redes selecionadas · ⚠ o app precisa estar aberto no horário — se estiver fechado, publica assim que abrir</div>' +
+    "</div>";
+  }
+
+  const allDone = PUB_NETS.every((n) => isPub(n.id));
+  const pubBtns = PUB_NETS.map((n) => {
+    const done = isPub(n.id);
+    return '<button class="btn go" data-publish-net="' + n.id + '" type="button"' +
+      (done || up ? " disabled" : "") +
+      (up ? ' title="o post ainda não está no ar no blog — use o agendamento"' : done ? ' title="já publicado nesta rede"' : "") +
+      ">" + (done ? "✓ " + n.label : "🚀 " + n.label) + "</button>";
+  }).join("");
+
+  const doneList = PUB_NETS.filter((n) => isPub(n.id)).map((n) => {
+    const info = p.networks[n.id];
+    return "✅ " + n.label + (info.url ? '<div class="path">' + esc(info.url) + "</div>" : "");
+  }).join("<br>");
+  const resultHtml =
+    [doneList, p.schedule && p.schedule.result ? "resultado do agendamento:<br>" + esc(p.schedule.result) : ""]
+      .filter(Boolean).join("<br><br>") ||
+    (up && p.blogScheduledAt
+      ? "📅 este post entra no blog em <b>" + fmtDateTime(p.blogScheduledAt) + "</b><br><br>deixe o disparo social agendado para DEPOIS desse horário — o app espera o post entrar no ar antes de publicar"
+      : "publique agora numa rede, ou agende data/hora para disparar em todas de uma vez");
+
+  return sec("Publicar") + '<div class="panel">' +
+    '<div class="field"><label>Texto da publicação (edite à vontade)</label>' +
+      '<textarea data-pub-text maxlength="2900">' + esc(defaultCopy(p)) + "</textarea></div>" +
+    '<div class="field"><label>Publicar agora</label><div class="row">' + pubBtns + "</div></div>" +
+    '<div class="divider">ou agendar</div>' +
+    '<div class="row">' +
+      '<input type="datetime-local" data-sched-at value="' +
+        (up && p.blogScheduledAt ? localDTAt(Date.parse(p.blogScheduledAt) + 30 * 60000) : localDT(60)) +
+        '" min="' + localDT(1) + '">' +
+      PUB_NETS.map((n) => {
+        const dis = isPub(n.id);
+        return '<label class="ck' + (dis ? " off" : "") + '"><input type="checkbox" data-sched-net value="' + n.id + '"' +
+          (dis ? " disabled" : " checked") + ">" + n.label + (dis ? " ✓" : "") + "</label>";
+      }).join("") +
+      '<button class="btn go" data-schedule-go type="button"' + (allDone ? " disabled" : "") + ">⏰ Agendar</button>" +
+    "</div>" +
+    '<div class="result" data-pub-result>' + resultHtml + "</div>" +
+  "</div>";
+}
+
+function thumbSectionHtml() {
+  if (!POST.image) return "";
+  return sec("Thumbnail") + '<div class="panel">' +
+    '<div class="field"><label>Texto chamativo</label><textarea data-thumb-text maxlength="70" style="min-height:64px"></textarea></div>' +
+    '<div class="suggestions" data-suggestions><span class="hint">carregando sugestões…</span></div>' +
+    '<div class="row">' +
+      '<div class="field" style="margin:0;min-width:220px"><label>Formato</label>' +
+        '<select data-thumb-format>' +
+          '<option value="og">1200x630 link/social</option>' +
+          '<option value="square">1080x1080 feed</option>' +
+          '<option value="story">1080x1920 story</option>' +
+        "</select></div>" +
+      '<button class="btn go" data-generate-thumb type="button" style="align-self:end">Gerar thumbnail</button>' +
+    "</div>" +
+    '<div class="result" data-thumb-result>preview aparece aqui</div>' +
+  "</div>";
+}
+
+const sec = (t) => '<div class="sec"><h2>' + t + '</h2><div class="rule"></div></div>';
+
+// Preserva o que o usuário digitou entre re-renders (disparados por outras janelas/scheduler)
+function captureFields() {
+  const v = (sel) => { const el = document.querySelector(sel); return el ? el.value : null; };
+  const pubEl = document.querySelector("[data-pub-text]");
+  return {
+    pubText: pubEl && !pubEl.readOnly ? pubEl.value : null,
+    thumbText: v("[data-thumb-text]"),
+    thumbFormat: v("[data-thumb-format]"),
+    schedAt: v("[data-sched-at]"),
+  };
+}
+function restoreFields(f) {
+  const set = (sel, val) => { const el = document.querySelector(sel); if (el && val !== null) el.value = val; };
+  const pubEl = document.querySelector("[data-pub-text]");
+  if (pubEl && !pubEl.readOnly && f.pubText !== null) pubEl.value = f.pubText;
+  set("[data-thumb-text]", f.thumbText);
+  set("[data-thumb-format]", f.thumbFormat);
+  set("[data-sched-at]", f.schedAt);
+}
+
+async function renderAll() {
+  const posts = await window.api.getPosts();
+  POST = posts.find((p) => p.guid === GUID);
+  const content = document.getElementById("content");
+  if (!POST) {
+    content.innerHTML = '<div class="empty">post não encontrado</div>';
+    return;
+  }
+  document.title = POST.title + " — DerivaSocial";
+
+  const up = !!POST.upcoming;
+  const badge = document.getElementById("status-badge");
+  badge.hidden = false;
+  badge.className = "status " + (up ? "chegando" : POST.status);
+  badge.textContent = up ? "chegando" : POST.status;
+
+  const blogBtn = document.getElementById("open-blog");
+  blogBtn.hidden = false;
+  blogBtn.disabled = up;
+  blogBtn.title = up ? "o post ainda não está no ar" : POST.url;
+
+  const readBtn = document.getElementById("toggle-read");
+  readBtn.hidden = false;
+  readBtn.textContent = POST.status === "lido" ? "Restaurar" : "Arquivar";
+
+  const fields = captureFields();
+  content.innerHTML = heroHtml() + pubSectionHtml() + thumbSectionHtml();
+  restoreFields(fields);
+  loadSuggestions();
+}
+
+async function loadSuggestions() {
+  const holder = document.querySelector("[data-suggestions]");
+  if (!holder) return;
+  try {
+    if (!SUGGESTIONS) SUGGESTIONS = await window.api.suggestThumbnailTexts(GUID);
+    holder.innerHTML = SUGGESTIONS.map((s) => '<button class="suggestion" data-suggestion type="button">' + esc(s) + "</button>").join("");
+    const field = document.querySelector("[data-thumb-text]");
+    if (field && !field.value) field.value = SUGGESTIONS[0] || "";
+  } catch (err) {
+    holder.innerHTML = '<span class="hint">erro ao carregar sugestões: ' + esc(err.message || String(err)) + "</span>";
+  }
+}
+
+async function doPublish(network, btn) {
+  const text = document.querySelector("[data-pub-text]").value.trim();
+  const result = document.querySelector("[data-pub-result]");
+  if (!text) { result.textContent = "o texto não pode ficar vazio"; return; }
+
+  if (network === "linkedin") {
+    const st = await window.api.linkedinStatus();
+    if (!st.connected) { result.innerHTML = "⚠ conecte o LinkedIn primeiro (botão no topo da janela principal)"; return; }
+  }
+  if (network === "instagram") {
+    const st = await window.api.instagramStatus();
+    if (!st.configured) { result.innerHTML = "⚠ Instagram sem credenciais (keys.txt)"; return; }
+  }
+  if (network === "threads") {
+    const st = await window.api.threadsStatus();
+    if (!st.configured) { result.innerHTML = "⚠ Threads sem credenciais (keys.txt)"; return; }
+  }
+
+  btn.disabled = true;
+  btn.textContent = "… publicando";
+  result.textContent = "publicando no " + network + "…";
+  try {
+    const out = await window.api.publish({ guid: GUID, network, text });
+    result.innerHTML = "✅ publicado!" + (out.url ? '<div class="path">' + esc(out.url) + "</div>" : "");
+    await renderAll();
+  } catch (err) {
+    result.textContent = "❌ erro: " + (err.message || String(err));
+    btn.disabled = false;
+    btn.textContent = "🚀 " + (PUB_NETS.find((n) => n.id === network) || { label: network }).label;
+  }
+}
+
+async function doSchedule(btn) {
+  const result = document.querySelector("[data-pub-result]");
+  const text = document.querySelector("[data-pub-text]").value.trim();
+  const at = document.querySelector("[data-sched-at]").value;
+  const networks = [...document.querySelectorAll("[data-sched-net]:checked")].map((i) => i.value);
+
+  if (!text) { result.textContent = "o texto não pode ficar vazio"; return; }
+  if (!at) { result.textContent = "escolha a data e a hora"; return; }
+  if (new Date(at).getTime() <= Date.now()) { result.textContent = "escolha um horário no futuro"; return; }
+  if (!networks.length) { result.textContent = "selecione ao menos uma rede"; return; }
+  if (POST.upcoming && POST.blogScheduledAt && new Date(at).getTime() <= Date.parse(POST.blogScheduledAt)) {
+    result.textContent = "⚠ o post só entra no blog " + fmtDateTime(POST.blogScheduledAt) + " — escolha um horário DEPOIS disso";
+    return;
+  }
+
+  btn.disabled = true;
+  result.textContent = "agendando…";
+  try {
+    await window.api.schedulePost({ guid: GUID, at: new Date(at).toISOString(), text, networks });
+    await renderAll();
+  } catch (err) {
+    result.textContent = "❌ erro: " + (err.message || String(err));
+    btn.disabled = false;
+  }
+}
+
+async function generateThumbnail(btn) {
+  const text = document.querySelector("[data-thumb-text]").value.trim();
+  const format = document.querySelector("[data-thumb-format]").value;
+  const result = document.querySelector("[data-thumb-result]");
+  if (!text) { result.textContent = "informe um texto para gerar"; return; }
+
+  btn.disabled = true;
+  result.textContent = "gerando imagem...";
+  try {
+    const out = await window.api.generateThumbnail({ guid: GUID, text, format });
+    result.dataset.path = out.path;
+    result.innerHTML = '<div><img src="' + out.dataUrl + '" alt="Thumbnail gerada">' +
+      '<div class="path">' + esc(out.width + "x" + out.height + " · " + out.path) + "</div>" +
+      '<button class="btn" data-show-thumb type="button">Mostrar arquivo</button></div>';
+  } catch (err) {
+    result.textContent = "erro ao gerar: " + (err.message || String(err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener("click", async (e) => {
+  const ext = e.target.closest("[data-ext]");
+  if (ext) { e.preventDefault(); window.api.openExternal(ext.dataset.url); return; }
+  const btn = e.target.closest("button");
+  if (!btn) return;
+
+  if (btn.dataset.publishNet) { await doPublish(btn.dataset.publishNet, btn); return; }
+  if (btn.dataset.scheduleGo !== undefined) { await doSchedule(btn); return; }
+  if (btn.dataset.scheduleCancel !== undefined) {
+    btn.disabled = true;
+    try { await window.api.cancelSchedule(GUID); await renderAll(); }
+    catch (err) { alert("Cancelar: " + (err.message || err)); btn.disabled = false; }
+    return;
+  }
+  if (btn.dataset.suggestion !== undefined) {
+    const f = document.querySelector("[data-thumb-text]");
+    if (f) f.value = btn.textContent.trim();
+    return;
+  }
+  if (btn.dataset.generateThumb !== undefined) { await generateThumbnail(btn); return; }
+  if (btn.dataset.showThumb !== undefined) {
+    const r = btn.closest(".result");
+    if (r && r.dataset.path) await window.api.showThumbnail(r.dataset.path);
+    return;
+  }
+});
+
+document.getElementById("open-blog").addEventListener("click", () => {
+  if (POST && POST.url) window.api.openExternal(POST.url);
+});
+document.getElementById("toggle-read").addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  try {
+    if (POST.status === "lido") await window.api.markUnread(GUID);
+    else await window.api.markRead(GUID);
+    await renderAll();
+  } finally { e.target.disabled = false; }
+});
+
+// mudanças vindas do scheduler ou de outras janelas
+window.api.onPostsUpdated(() => renderAll());
+renderAll();
+</script>
+</body>
+</html>

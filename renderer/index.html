@@ -74,7 +74,7 @@ a{color:var(--cyan-bright);text-decoration:none}
 /* Post card */
 .list{display:grid;gap:12px}
 .card{position:relative;display:flex;flex-wrap:wrap;gap:14px;background:var(--bg-card);border:1px solid var(--line);
-  border-radius:14px;padding:12px;overflow:hidden;transition:.18s}
+  border-radius:14px;padding:12px;overflow:hidden;transition:.18s;cursor:pointer}
 .card:hover{border-color:var(--line2);box-shadow:0 0 0 1px rgba(0,255,255,.06),0 10px 34px rgba(0,0,0,.5),inset 0 0 26px rgba(0,255,255,.05)}
 .card::after{content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;
   background:linear-gradient(110deg,transparent,rgba(255,255,255,.10) 45%,transparent 60%);
@@ -196,7 +196,7 @@ function card(p) {
     const ok = st && st.status === "published";
     return '<span class="chip ' + (ok ? "ok" : "pend") + '"><span class="dot"></span>' + r + "</span>";
   }).join("");
-  return '<div class="card">' + thumb +
+  return '<div class="card" data-guid="' + esc(p.guid) + '" title="clique para abrir o post ampliado">' + thumb +
     '<div class="info">' +
       '<div class="t">' + esc(p.title) + "</div>" +
       '<div class="meta"><span>' + fmtDate(p.publishedAt || p.discoveredAt) + "</span>" + (p.category ? '<span>#' + esc(p.category) + "</span>" : "") +
@@ -461,7 +461,14 @@ document.querySelector(".tabs").addEventListener("click", async (e) => {
 
 document.getElementById("list").addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
-  if (!btn) return;
+  if (!btn) {
+    // clique no corpo do card (fora de botões/painéis/campos) abre a janela ampliada
+    const cardEl = e.target.closest(".card");
+    if (cardEl && !e.target.closest(".thumb-panel") && !e.target.closest("input,textarea,select,label,a")) {
+      window.api.openPostWindow(cardEl.dataset.guid);
+    }
+    return;
+  }
 
   if (btn.dataset.read !== undefined) {
     btn.disabled = true;

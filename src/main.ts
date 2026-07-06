@@ -41,6 +41,43 @@ function createWindow(): void {
   win.on("closed", () => (win = null));
 }
 
+// Avisa todas as janelas que os posts mudaram (menos a que originou a ação,
+// que já se atualiza sozinha no próprio fluxo).
+function broadcastPostsUpdated(except?: Electron.WebContents): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed() && w.webContents !== except) w.webContents.send("posts-updated");
+  }
+}
+
+// Janela de detalhe do post (uma por post; clicar de novo só foca a existente)
+const detailWins = new Map<string, BrowserWindow>();
+
+function openPostWindow(guid: string): void {
+  const existing = detailWins.get(guid);
+  if (existing && !existing.isDestroyed()) {
+    existing.focus();
+    return;
+  }
+  const w = new BrowserWindow({
+    width: 1000,
+    height: 840,
+    minWidth: 720,
+    minHeight: 560,
+    backgroundColor: "#010212",
+    title: "DerivaSocial",
+    icon: iconPath(),
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  w.setMenuBarVisibility(false);
+  w.loadFile(path.join(app.getAppPath(), "renderer", "post.html"), { query: { guid } });
+  detailWins.set(guid, w);
+  w.on("closed", () => detailWins.delete(guid));
+}
+
 // Rotas de dados (IPC) — o renderer chama via window.api.*
 ipcMain.handle("posts", () => store.getPosts());
 ipcMain.handle("stats", () => store.getStats());
@@ -48,8 +85,21 @@ ipcMain.handle("refresh", async () => {
   await syncRadar();
   return store.refreshPosts();
 });
-ipcMain.handle("post:read", async (_event, guid: string) => store.markRead(guid));
-ipcMain.handle("post:unread", async (_event, guid: string) => store.markUnread(guid));
+ipcMain.handle("post:read", async (event, guid: string) => {
+  const r = await store.markRead(guid);
+  broadcastPostsUpdated(event.sender);
+  return r;
+});
+ipcMain.handle("post:unread", async (event, guid: string) => {
+  const r = await store.markUnread(guid);
+  broadcastPostsUpdated(event.sender);
+  return r;
+});
+ipcMain.handle("post:open-window", (_event, guid: string) => openPostWindow(guid));
+ipcMain.handle("open:external", (_event, url: string) => {
+  if (!/^https:\/\//i.test(url)) throw new Error("Só abro links https.");
+  return shell.openExternal(url);
+});
 ipcMain.handle("thumbnail:suggestions", async (_event, guid: string) => {
   const post = await store.getPost(guid);
   if (!post) throw new Error("Post nao encontrado.");
@@ -89,7 +139,7 @@ ipcMain.handle("linkedin:status", () => linkedin.status());
 ipcMain.handle("linkedin:connect", () => linkedin.connect());
 ipcMain.handle("instagram:status", () => instagram.status());
 ipcMain.handle("threads:status", () => threads.status());
-ipcMain.handle("publish", async (_event, payload: { guid: string; network: string; text: string }) => {
+ipcMain.handle("publish", async (event, payload: { guid: string; network: string; text: string }) => {
   const post = await store.getPost(payload.guid);
   if (!post) throw new Error("Post não encontrado.");
   if (post.upcoming) {
@@ -100,11 +150,12 @@ ipcMain.handle("publish", async (_event, payload: { guid: string; network: strin
   if (prev?.status === "published") return { url: prev.url, already: true };
   const out = await publishToNetwork(post, payload.network, payload.text);
   await store.markPublished(post.guid, payload.network, out.url);
+  broadcastPostsUpdated(event.sender);
   return { url: out.url };
 });
 
 // ---- Agendamento ----
-ipcMain.handle("schedule:set", async (_event, payload: { guid: string; at: string; text: string; networks: string[] }) => {
+ipcMain.handle("schedule:set", async (event, payload: { guid: string; at: string; text: string; networks: string[] }) => {
   const post = await store.getPost(payload.guid);
   if (!post) throw new Error("Post não encontrado.");
   const networks = (payload.networks || []).filter((n) => REDES_IMPLEMENTADAS.includes(n));
@@ -117,14 +168,20 @@ ipcMain.handle("schedule:set", async (_event, payload: { guid: string; at: strin
       `O post só entra no blog em ${new Date(post.blogScheduledAt).toLocaleString("pt-BR")} — agende o disparo para DEPOIS disso.`,
     );
   }
-  return store.setSchedule(post.guid, {
+  const r = await store.setSchedule(post.guid, {
     at: at.toISOString(),
     text: payload.text.trim(),
     networks,
     status: "pending",
   });
+  broadcastPostsUpdated(event.sender);
+  return r;
 });
-ipcMain.handle("schedule:cancel", async (_event, guid: string) => store.setSchedule(guid, null));
+ipcMain.handle("schedule:cancel", async (event, guid: string) => {
+  const r = await store.setSchedule(guid, null);
+  broadcastPostsUpdated(event.sender);
+  return r;
+});
 
 // Scheduler: checa a cada 30s; dispara agendamentos vencidos publicando nas redes EM PARALELO.
 // Se o app estava fechado no horário, dispara na próxima abertura (catch-up).
@@ -179,7 +236,7 @@ async function runSchedule(post: store.Post): Promise<void> {
       .filter(Boolean)
       .join("  "),
   });
-  win?.webContents.send("posts-updated");
+  broadcastPostsUpdated();
   console.log(`[agenda] "${p.title}": ${falhas.length ? "com falhas" : "publicado"}`);
 }
 
