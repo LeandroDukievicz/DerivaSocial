@@ -7,6 +7,7 @@ import * as secrets from "./secrets";
 import * as linkedin from "./linkedin";
 import * as instagram from "./instagram";
 import * as threads from "./threads";
+import * as upcoming from "./upcoming";
 
 // Mesmo nome em dev e empacotado => mesmo userData (~/.config/DerivaSocial),
 // compartilhando posts.json e secrets.json entre `npm start` e o app instalado.
@@ -43,7 +44,12 @@ function createWindow(): void {
 // Rotas de dados (IPC) — o renderer chama via window.api.*
 ipcMain.handle("posts", () => store.getPosts());
 ipcMain.handle("stats", () => store.getStats());
-ipcMain.handle("refresh", () => store.refreshPosts());
+ipcMain.handle("refresh", async () => {
+  await syncRadar();
+  return store.refreshPosts();
+});
+ipcMain.handle("post:read", async (_event, guid: string) => store.markRead(guid));
+ipcMain.handle("post:unread", async (_event, guid: string) => store.markUnread(guid));
 ipcMain.handle("thumbnail:suggestions", async (_event, guid: string) => {
   const post = await store.getPost(guid);
   if (!post) throw new Error("Post nao encontrado.");
@@ -58,6 +64,16 @@ ipcMain.handle("thumbnail:show", async (_event, filePath: string) => {
   if (!thumbnail.isManagedPath(filePath)) throw new Error("Arquivo fora da pasta de thumbnails.");
   shell.showItemInFolder(filePath);
 });
+
+// ---- Radar do blog (posts agendados no dashboard) ----
+async function syncRadar(): Promise<void> {
+  if (!upcoming.configured()) return; // sem host no keys.txt, o radar fica desligado
+  try {
+    await store.syncUpcoming(await upcoming.fetchUpcoming());
+  } catch (e) {
+    console.warn("[radar] falha ao consultar o banco do blog:", (e as Error).message);
+  }
+}
 
 // ---- Redes sociais ----
 const REDES_IMPLEMENTADAS = ["linkedin", "instagram", "threads"];
@@ -76,6 +92,10 @@ ipcMain.handle("threads:status", () => threads.status());
 ipcMain.handle("publish", async (_event, payload: { guid: string; network: string; text: string }) => {
   const post = await store.getPost(payload.guid);
   if (!post) throw new Error("Post não encontrado.");
+  if (post.upcoming) {
+    const quando = post.blogScheduledAt ? new Date(post.blogScheduledAt).toLocaleString("pt-BR") : "em breve";
+    throw new Error(`Este post ainda não está no ar — entra no blog em ${quando}. Agende o disparo para depois desse horário.`);
+  }
   const prev = post.networks?.[payload.network];
   if (prev?.status === "published") return { url: prev.url, already: true };
   const out = await publishToNetwork(post, payload.network, payload.text);
@@ -92,6 +112,11 @@ ipcMain.handle("schedule:set", async (_event, payload: { guid: string; at: strin
   if (!payload.text?.trim()) throw new Error("O texto não pode ficar vazio.");
   const at = new Date(payload.at);
   if (isNaN(at.getTime())) throw new Error("Data/hora inválida.");
+  if (post.upcoming && post.blogScheduledAt && at.getTime() <= Date.parse(post.blogScheduledAt)) {
+    throw new Error(
+      `O post só entra no blog em ${new Date(post.blogScheduledAt).toLocaleString("pt-BR")} — agende o disparo para DEPOIS disso.`,
+    );
+  }
   return store.setSchedule(post.guid, {
     at: at.toISOString(),
     text: payload.text.trim(),
@@ -116,7 +141,18 @@ async function checkSchedules(): Promise<void> {
   }
 }
 
-async function runSchedule(p: store.Post): Promise<void> {
+async function runSchedule(post: store.Post): Promise<void> {
+  let p = post;
+  if (p.upcoming) {
+    // o post do blog ainda não saiu — confere o RSS antes de disparar; se atrasou, espera o próximo ciclo
+    await store.refreshPosts().catch(() => {});
+    const fresh = await store.getPost(p.guid);
+    if (!fresh || fresh.upcoming) {
+      console.log(`[agenda] "${p.title}": segurando o disparo — o post ainda não entrou no ar no blog`);
+      return;
+    }
+    p = fresh;
+  }
   const s = p.schedule!;
   const alvos = s.networks.filter((n) => p.networks?.[n]?.status !== "published");
   console.log(`[agenda] disparando "${p.title}" → ${alvos.join(", ")}`);
@@ -154,9 +190,10 @@ app.whenReady().then(async () => {
   await secrets.init(dataDir, app.getAppPath());
   instagram.maybeRefreshToken().catch((e) => console.error("refresh IG:", e));
   threads.maybeRefreshToken().catch((e) => console.error("refresh Threads:", e));
+  await syncRadar();
   await store.refreshPosts().catch((e) => console.error("refresh inicial:", e));
-  // Poll de hora em hora
-  setInterval(() => store.refreshPosts().catch((e) => console.error(e)), HORA_MS);
+  // Poll de hora em hora (radar do blog + RSS)
+  setInterval(() => syncRadar().then(() => store.refreshPosts()).catch((e) => console.error(e)), HORA_MS);
   // Agendamentos: catch-up na abertura + checagem a cada 30s
   checkSchedules().catch((e) => console.error(e));
   setInterval(() => checkSchedules().catch((e) => console.error(e)), 30_000);

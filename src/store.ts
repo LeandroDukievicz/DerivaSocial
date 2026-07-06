@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 const RSS_URL = process.env.RSS_URL ?? "https://devsaderiva.com.br/rss.xml";
 
-export type Status = "novo" | "agendado" | "publicado" | "ignorado";
+export type Status = "novo" | "agendado" | "publicado" | "lido" | "ignorado";
 
 export interface Schedule {
   at: string; // ISO — quando disparar
@@ -23,6 +23,9 @@ export interface Post {
   category?: string;
   publishedAt?: string;
   discoveredAt: string;
+  readAt?: string;
+  upcoming?: boolean; // ainda não está no ar — só agendado no dashboard do blog
+  blogScheduledAt?: string; // ISO UTC — quando o post entra no ar no blog
   status: Status;
   networks: Record<string, { status: string; url?: string }>;
   schedule?: Schedule;
@@ -64,7 +67,30 @@ export async function markPublished(guid: string, network: string, url?: string)
   const post = data[guid];
   if (!post) return null;
   post.networks[network] = { status: "published", url };
-  post.status = "publicado";
+  if (post.status !== "lido") post.status = "publicado";
+  await save(data);
+  return post;
+}
+
+/** Marca um post como lido/arquivado. */
+export async function markRead(guid: string): Promise<Post | null> {
+  const data = await load();
+  const post = data[guid];
+  if (!post) return null;
+  post.status = "lido";
+  post.readAt = new Date().toISOString();
+  await save(data);
+  return post;
+}
+
+/** Restaura um post arquivado para a lista ativa. */
+export async function markUnread(guid: string): Promise<Post | null> {
+  const data = await load();
+  const post = data[guid];
+  if (!post) return null;
+  const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
+  post.status = post.schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
+  post.readAt = undefined;
   await save(data);
   return post;
 }
@@ -76,19 +102,72 @@ export async function setSchedule(guid: string, schedule: Schedule | null): Prom
   if (!post) return null;
   post.schedule = schedule ?? undefined;
   const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
-  post.status = schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
+  if (post.status !== "lido") {
+    post.status = schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
+  }
   await save(data);
   return post;
 }
 
 export async function getStats() {
   const posts = await getPosts();
+  const ativos = posts.filter((p) => p.status !== "lido");
   return {
     total: posts.length,
-    novos: posts.filter((p) => p.status === "novo").length,
-    agendados: posts.filter((p) => p.status === "agendado").length,
-    publicados: posts.filter((p) => p.status === "publicado").length,
+    novos: ativos.filter((p) => p.status === "novo" && !p.upcoming).length,
+    chegando: posts.filter((p) => p.upcoming).length,
+    agendados: ativos.filter((p) => p.status === "agendado").length,
+    publicados: ativos.filter((p) => p.status === "publicado").length,
+    arquivados: posts.filter((p) => p.status === "lido").length,
   };
+}
+
+const BLOG_URL = "https://devsaderiva.com.br";
+
+/** Radar: registra/atualiza posts AGENDADOS no blog (vindos do banco do dashboard).
+ *  O guid usa a mesma URL do RSS, então quando o post publicar ele vira o MESMO registro. */
+export async function syncUpcoming(
+  list: { slug: string; title: string; excerpt: string; image?: string; category?: string; blogScheduledAt: string }[],
+): Promise<number> {
+  const data = await load();
+  const naAgenda = new Set<string>();
+  let novos = 0;
+  for (const u of list) {
+    const guid = `${BLOG_URL}/posts/${u.slug}`;
+    naAgenda.add(guid);
+    const post = data[guid];
+    if (!post) {
+      data[guid] = {
+        guid,
+        title: u.title,
+        url: guid,
+        image: u.image,
+        summary: (u.excerpt || "").slice(0, 300),
+        category: u.category,
+        discoveredAt: new Date().toISOString(),
+        upcoming: true,
+        blogScheduledAt: u.blogScheduledAt,
+        status: "novo",
+        networks: {},
+      };
+      novos++;
+    } else if (post.upcoming) {
+      // dados editáveis no dashboard podem mudar até a publicação (inclusive o horário)
+      post.title = u.title;
+      post.image = u.image ?? post.image;
+      post.summary = (u.excerpt || post.summary).slice(0, 300);
+      post.category = u.category ?? post.category;
+      post.blogScheduledAt = u.blogScheduledAt;
+    }
+  }
+  // Saiu da agenda do blog sem publicar (cancelado/voltou a rascunho): tira do radar,
+  // a menos que já exista agendamento social — aí fica e o scheduler segura o disparo.
+  for (const p of Object.values(data)) {
+    if (p.upcoming && !naAgenda.has(p.guid) && !p.schedule) delete data[p.guid];
+  }
+  await save(data);
+  if (novos) console.log(`[radar] ${novos} post(s) agendado(s) no blog entraram no painel`);
+  return novos;
 }
 
 /** Bate no RSS, registra posts novos (dedup por guid). Retorna quantos novos. */
@@ -100,7 +179,22 @@ export async function refreshPosts(): Promise<number> {
   const data = await load();
   let novos = 0;
   for (const it of items) {
-    if (!it.guid || data[it.guid]) continue;
+    if (!it.guid) continue;
+    const existente = data[it.guid];
+    if (existente) {
+      if (existente.upcoming) {
+        // o post do radar entrou no ar — completa com os dados reais do RSS
+        existente.upcoming = false;
+        existente.title = it.title || existente.title;
+        existente.url = it.link || existente.url;
+        existente.image = it.image || existente.image;
+        existente.summary = (it.description || existente.summary).slice(0, 300);
+        existente.category = it.category || existente.category;
+        existente.publishedAt = it.pubDate || undefined;
+        console.log(`[radar] post entrou no ar no blog: ${existente.title}`);
+      }
+      continue;
+    }
     data[it.guid] = {
       guid: it.guid,
       title: it.title || "(sem título)",

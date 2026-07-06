@@ -33,22 +33,27 @@ export interface ThreadsSecrets {
   refreshedAt?: string;
 }
 
+export interface VpsSecrets {
+  host?: string; // ex.: root@IP — usado pelo radar de posts agendados (nunca commitar o IP)
+}
+
 interface Secrets {
   linkedin: LinkedInSecrets;
   instagram: InstagramSecrets;
   threads: ThreadsSecrets;
+  vps: VpsSecrets;
 }
 
 let file = "";
-let cache: Secrets = { linkedin: {}, instagram: {}, threads: {} };
+let cache: Secrets = { linkedin: {}, instagram: {}, threads: {}, vps: {} };
 
 export async function init(dataDir: string, appRoot: string): Promise<void> {
   file = path.join(dataDir, "secrets.json");
   try {
     const raw = JSON.parse(await fs.readFile(file, "utf8"));
-    cache = { linkedin: {}, instagram: {}, threads: {}, ...raw };
+    cache = { linkedin: {}, instagram: {}, threads: {}, vps: {}, ...raw };
   } catch {
-    cache = { linkedin: {}, instagram: {}, threads: {} };
+    cache = { linkedin: {}, instagram: {}, threads: {}, vps: {} };
   }
   await importKeysTxt([
     path.join(dataDir, "keys.txt"),
@@ -83,6 +88,7 @@ function parseKeys(txt: string): void {
       if (s.startsWith("linkedin")) section = "linkedin";
       else if (s.startsWith("instagram")) section = "instagram";
       else if (s.startsWith("threads")) section = "threads";
+      else if (s.startsWith("vps") || s.startsWith("servidor")) section = "vps";
       continue;
     }
     const key = line.slice(0, i).toLowerCase();
@@ -104,6 +110,8 @@ function parseKeys(txt: string): void {
           tgt.refreshedAt = undefined;
         }
       } else if (/conta|user|@/.test(key)) tgt.username = value.replace(/^@/, "");
+    } else if (section === "vps") {
+      if (/host|ssh/.test(key)) cache.vps.host = value;
     }
   }
 }
@@ -116,6 +124,9 @@ export function instagram(): InstagramSecrets {
 }
 export function threads(): ThreadsSecrets {
   return cache.threads;
+}
+export function vps(): VpsSecrets {
+  return cache.vps;
 }
 
 export async function save(): Promise<void> {

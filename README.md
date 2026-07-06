@@ -31,6 +31,7 @@ Electron (app .exe / .AppImage)
 │   ├── src/linkedin.ts              → OAuth (navegador) + publicação no perfil
 │   ├── src/instagram.ts             → publicação no feed + renovação automática do token
 │   ├── src/threads.ts               → publicação no Threads + renovação automática do token
+│   ├── src/upcoming.ts              → radar: posts agendados no blog (SSH + psql no VPS)
 │   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
 └── renderer      (renderer/index.html) → dashboard neon (posts + thumbnails + publicação)
         chama o backend via  window.api.*  (getPosts, publish, linkedinConnect, …)
@@ -63,7 +64,12 @@ threads
 app id : ...
 chave secreta : ...
 token de acesso : THAA...
+
+vps
+host : root@IP_DO_SERVIDOR
 ```
+
+> A seção `vps` liga o **radar de agendados do blog** (abaixo). Sem ela o radar fica desligado — o resto do app funciona normalmente.
 
 > O passo a passo completo para obter cada credencial (apps de desenvolvedor, permissões, testers) está em **[SETUP-REDES.md](SETUP-REDES.md)**.
 
@@ -104,6 +110,16 @@ token de acesso : THAA...
 - Um scheduler no main process checa **a cada 30s**; no horário, publica nas redes selecionadas **em paralelo** (`Promise.allSettled`) — se uma falhar, as outras seguem, e o resultado por rede fica registrado no painel.
 - **O app precisa estar aberto no horário.** Se estiver fechado, há *catch-up*: o agendamento vencido dispara **assim que o app abrir**.
 - O texto agendado é o mesmo para todas as redes (respeitando os limites de cada uma).
+
+### 📅 Radar de agendados do blog
+
+O app mostra também os posts que estão **agendados no dashboard do blog** (ainda sem publicar), pra você deixar o disparo social pré-agendado:
+
+- **Fonte:** o Postgres do dashboard, consultado por **SSH** (host na seção `vps` do `keys.txt`) + `docker exec psql`. Consulta no start, a cada hora e no botão "Atualizar agora".
+- **No painel:** o post aparece com badge **"chegando"**, a data/hora em que entra no ar (`📅 no blog: …`) e o card **"Chegando ao blog"** nas estatísticas.
+- **Regras:** "Publicar agora" fica bloqueado (o post não existe no ar ainda); o agendamento **exige horário depois** do horário do blog (validado na UI e no backend) e já vem pré-preenchido com **+30 min**.
+- **Disparo seguro:** no horário do disparo, o app confere o RSS — se o post do blog **atrasou**, o disparo é **segurado** e re-tentado a cada 30s até o post entrar no ar. Quando publica, o registro do radar vira o post normal (mesmo guid do RSS, sem duplicar).
+- Se o post for **desagendado/cancelado** no dashboard, ele sai do radar (a menos que já tenha agendamento social — aí fica e o disparo continua segurado).
 
 ---
 
@@ -173,6 +189,7 @@ src/
   linkedin.ts    # OAuth + publicação no perfil (ugcPosts)
   instagram.ts   # publicação no feed (container→publish) + refresh do token
   threads.ts     # publicação no Threads (container→publish) + refresh do token
+  upcoming.ts    # radar de posts agendados no blog (SSH + psql, host no keys.txt)
   keys.txt       # credenciais (GITIGNORED — nunca versionar!)
 renderer/
   index.html     # dashboard (tema neon LD Studio) — usa window.api
