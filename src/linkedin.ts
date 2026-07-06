@@ -137,7 +137,15 @@ async function userinfo(accessToken: string) {
   return (await res.json()) as { sub: string; name?: string; given_name?: string };
 }
 
-/** Publica no perfil como compartilhamento de link (o LinkedIn monta o preview do artigo). */
+// Versão mensal da API nova do LinkedIn (/rest/*) — precisa ter menos de 1 ano.
+const API_VERSION = "202510";
+
+/**
+ * Publica no perfil como compartilhamento de link. Caminho novo: /rest/posts,
+ * que aceita thumbnail personalizada no card do artigo (post.imageOverride —
+ * a thumb gerada sobe direto pro LinkedIn). Se o endpoint novo falhar, cai
+ * automaticamente pro formato antigo (ugcPosts, preview montado pelo LinkedIn).
+ */
 export async function publish(post: Post, text: string): Promise<{ id: string; url?: string }> {
   const st = status();
   const s = secrets.linkedin();
@@ -145,6 +153,79 @@ export async function publish(post: Post, text: string): Promise<{ id: string; u
     throw new Error(st.expired ? "Token do LinkedIn expirou — clique em Conectar de novo." : "LinkedIn não conectado.");
   }
 
+  try {
+    return await publishRest(s, post, text);
+  } catch (e) {
+    console.warn("[linkedin] /rest/posts falhou, caindo pro ugcPosts:", (e as Error).message);
+    return publishUgc(s, post, text);
+  }
+}
+
+async function publishRest(s: ReturnType<typeof secrets.linkedin>, post: Post, text: string) {
+  const article: Record<string, string> = { source: post.url, title: post.title };
+  if (post.imageOverride) article.thumbnail = await uploadImage(s, post.imageOverride);
+
+  const body = {
+    author: s.personUrn,
+    commentary: escapeLittleFormat(text),
+    visibility: "PUBLIC",
+    distribution: { feedDistribution: "MAIN_FEED", targetEntities: [], thirdPartyDistributionChannels: [] },
+    content: { article },
+    lifecycleState: "PUBLISHED",
+    isReshareDisabledByAuthor: false,
+  };
+
+  const res = await fetch("https://api.linkedin.com/rest/posts", {
+    method: "POST",
+    headers: restHeaders(s),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`rest/posts HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+
+  const id = res.headers.get("x-restli-id") || "";
+  return { id, url: id ? `https://www.linkedin.com/feed/update/${id}/` : undefined };
+}
+
+/** Sobe a thumb (URL pública nossa) pro LinkedIn e retorna o URN da imagem. */
+async function uploadImage(s: ReturnType<typeof secrets.linkedin>, imageUrl: string): Promise<string> {
+  const img = await fetch(imageUrl);
+  if (!img.ok) throw new Error(`download da thumb falhou (HTTP ${img.status})`);
+  const bytes = Buffer.from(await img.arrayBuffer());
+
+  const init = await fetch("https://api.linkedin.com/rest/images?action=initializeUpload", {
+    method: "POST",
+    headers: restHeaders(s),
+    body: JSON.stringify({ initializeUploadRequest: { owner: s.personUrn } }),
+  });
+  if (!init.ok) throw new Error(`initializeUpload HTTP ${init.status}: ${(await init.text()).slice(0, 300)}`);
+  const j = (await init.json()) as { value: { uploadUrl: string; image: string } };
+
+  const put = await fetch(j.value.uploadUrl, {
+    method: "PUT",
+    headers: { authorization: `Bearer ${s.accessToken}`, "content-type": "application/octet-stream" },
+    body: bytes,
+  });
+  if (!put.ok) throw new Error(`upload da imagem HTTP ${put.status}`);
+  return j.value.image;
+}
+
+function restHeaders(s: ReturnType<typeof secrets.linkedin>): Record<string, string> {
+  return {
+    authorization: `Bearer ${s.accessToken}`,
+    "content-type": "application/json",
+    "linkedin-version": API_VERSION,
+    "x-restli-protocol-version": "2.0.0",
+  };
+}
+
+// No "little format" da commentary, caracteres de formatação soltos podem dar 400 —
+// o escape faz eles saírem literais no post ( # fica de fora: hashtags devem funcionar).
+function escapeLittleFormat(text: string): string {
+  return text.replace(/[\\(){}<>\[\]*_~|]/g, (c) => `\\${c}`);
+}
+
+/** Formato antigo (v2/ugcPosts) — fallback; o LinkedIn monta o preview do artigo. */
+async function publishUgc(s: ReturnType<typeof secrets.linkedin>, post: Post, text: string) {
   const body = {
     author: s.personUrn,
     lifecycleState: "PUBLISHED",
