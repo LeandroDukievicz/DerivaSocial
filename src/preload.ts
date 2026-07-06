@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("api", {
   getPosts: () => ipcRenderer.invoke("posts"),
   getStats: () => ipcRenderer.invoke("stats"),
   refresh: () => ipcRenderer.invoke("refresh"),
+  markRead: (guid: string) => ipcRenderer.invoke("post:read", guid),
+  markUnread: (guid: string) => ipcRenderer.invoke("post:unread", guid),
   suggestThumbnailTexts: (guid: string) => ipcRenderer.invoke("thumbnail:suggestions", guid),
   generateThumbnail: (payload: { guid: string; text: string; format: string }) => ipcRenderer.invoke("thumbnail:generate", payload),
   showThumbnail: (filePath: string) => ipcRenderer.invoke("thumbnail:show", filePath),
