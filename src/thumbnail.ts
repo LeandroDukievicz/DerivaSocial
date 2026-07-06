@@ -46,9 +46,9 @@ export function suggestTexts(post: Post): string[] {
   const title = cleanText(post.title);
   const category = cleanText(post.category || "");
   const keyPhrase = extractKeyPhrase(title);
-  const short = limitWords(title, 6, 44);
+  // 1ª sugestão = título INTEIRO (o layout encolhe a fonte pra caber) — nunca amputado no meio
   const suggestions = [
-    short,
+    trimText(title, 90),
     category ? `${category} na pratica` : `${keyPhrase} na pratica`,
     `O guia direto sobre ${keyPhrase}`,
     `O que muda com ${keyPhrase}`,
@@ -56,7 +56,7 @@ export function suggestTexts(post: Post): string[] {
   ];
 
   return unique(suggestions)
-    .map((s) => trimText(s, 46))
+    .map((s) => trimText(s, 90))
     .filter((s) => s.length >= 6)
     .slice(0, 5);
 }
@@ -66,7 +66,7 @@ export async function generate(post: Post, req: ThumbnailRequest): Promise<Thumb
 
   const format = req.format && FORMATS[req.format] ? req.format : "og";
   const spec = FORMATS[format];
-  const text = trimText(cleanText(req.text), 70);
+  const text = trimText(cleanText(req.text), 90);
   if (!text) throw new Error("Informe um texto para a thumbnail.");
 
   const image = await fetchImage(post.image);
@@ -109,6 +109,21 @@ async function fetchImage(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
+// Largura média de um caractere em fração do font-size (bold sans do sistema —
+// estimativa folgada pra quebra de linha nunca estourar a lateral).
+const CHAR_W = 0.62;
+
+/** Encolhe a fonte em degraus até o texto INTEIRO caber nas linhas disponíveis. */
+function fitTitle(title: string, availW: number, baseFont: number, minFont: number, maxLines: number): { size: number; lines: string[] } {
+  for (let size = baseFont; size >= minFont; size -= 6) {
+    const maxChars = Math.max(8, Math.floor(availW / (size * CHAR_W)));
+    const wrapped = wrapText(title, maxChars, maxLines);
+    if (!wrapped.truncated) return { size, lines: wrapped.lines };
+  }
+  const maxChars = Math.max(8, Math.floor(availW / (minFont * CHAR_W)));
+  return { size: minFont, lines: wrapText(title, maxChars, maxLines).lines };
+}
+
 function createOverlaySvg(opts: {
   width: number;
   height: number;
@@ -119,14 +134,30 @@ function createOverlaySvg(opts: {
   const isStory = opts.format === "story";
   const isSquare = opts.format === "square";
   const pad = isStory ? 86 : 70;
-  const fontSize = isStory ? 96 : isSquare ? 76 : 74;
-  const maxChars = isStory ? 15 : isSquare ? 17 : 22;
-  const lines = wrapText(opts.title, maxChars, 3);
-  const lineHeight = Math.round(fontSize * 1.08);
+  const availW = opts.width - pad * 2;
+
+  // Título: fonte dinâmica — começa grande e encolhe até caber inteiro
+  const fit = fitTitle(
+    opts.title,
+    availW,
+    isStory ? 96 : isSquare ? 76 : 74,
+    isStory ? 60 : 46,
+    isStory || isSquare ? 4 : 3,
+  );
+  const fontSize = fit.size;
+  const lines = fit.lines;
+  const lineHeight = Math.round(fontSize * 1.12);
   const textHeight = lines.length * lineHeight;
-  const textY = opts.height - pad - 68 - textHeight;
-  const tagY = Math.max(pad, textY - 64);
   const brandY = opts.height - pad;
+  const textY = brandY - 68 - textHeight;
+
+  // Caixa da categoria: largura proporcional ao texto (não mais fixa)
+  const tag = limitWords(opts.category.toUpperCase(), 3, 28);
+  const tagFont = isStory ? 26 : 22;
+  const tagPadX = 24;
+  const tagH = isStory ? 54 : 46;
+  const tagW = Math.min(availW, Math.round(tag.length * (tagFont * 0.68 + 3) + tagPadX * 2));
+  const tagY = Math.max(pad, textY - tagH - 26);
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${opts.width}" height="${opts.height}" viewBox="0 0 ${opts.width} ${opts.height}">
@@ -150,8 +181,8 @@ function createOverlaySvg(opts: {
   </defs>
   <rect width="100%" height="100%" fill="url(#shade)"/>
   <rect y="${Math.round(opts.height * 0.36)}" width="100%" height="${Math.round(opts.height * 0.64)}" fill="url(#bottom)"/>
-  <rect x="${pad}" y="${tagY}" rx="18" ry="18" width="${Math.min(520, opts.width - pad * 2)}" height="46" fill="#010212" fill-opacity="0.74" stroke="url(#neon)" stroke-width="2"/>
-  <text x="${pad + 24}" y="${tagY + 31}" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800" letter-spacing="3" fill="#e6f6ff">${escapeXml(limitWords(opts.category.toUpperCase(), 3, 28))}</text>
+  <rect x="${pad}" y="${tagY}" rx="18" ry="18" width="${tagW}" height="${tagH}" fill="#010212" fill-opacity="0.74" stroke="url(#neon)" stroke-width="2"/>
+  <text x="${pad + tagPadX}" y="${tagY + Math.round(tagH / 2 + tagFont * 0.36)}" font-family="Inter, Arial, sans-serif" font-size="${tagFont}" font-weight="800" letter-spacing="3" fill="#e6f6ff">${escapeXml(tag)}</text>
   <text x="${pad}" y="${textY + fontSize}" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="900" letter-spacing="0" fill="#ffffff" filter="url(#shadow)">
     ${lines.map((line, i) => `<tspan x="${pad}" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(line)}</tspan>`).join("")}
   </text>
@@ -198,25 +229,36 @@ function unique(values: string[]): string[] {
   return [...new Set(values.map(cleanText).filter(Boolean))];
 }
 
-function wrapText(value: string, maxChars: number, maxLines: number): string[] {
+/**
+ * Quebra em até maxLines SEM descartar palavra no meio (o bug antigo jogava fora
+ * o resto do título ao atingir o limite). Se realmente não couber, marca
+ * truncated (pro chamador tentar fonte menor) e fecha a última linha com "…".
+ */
+function wrapText(value: string, maxChars: number, maxLines: number): { lines: string[]; truncated: boolean } {
   const words = cleanText(value).split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = "";
+  let truncated = false;
 
   for (const word of words) {
     const next = current ? `${current} ${word}` : word;
     if (next.length > maxChars && current) {
+      if (lines.length === maxLines - 1) {
+        // última linha e ainda sobra palavra: não cabe neste tamanho de fonte
+        truncated = true;
+        current = trimText(current, maxChars - 1) + "…";
+        break;
+      }
       lines.push(current);
       current = word;
-      if (lines.length === maxLines - 1) break;
     } else {
       current = next;
     }
   }
 
-  if (current && lines.length < maxLines) lines.push(current);
+  if (current) lines.push(current);
   if (!lines.length) lines.push(cleanText(value));
-  return lines.slice(0, maxLines);
+  return { lines: lines.slice(0, maxLines), truncated };
 }
 
 function slug(value: string): string {
