@@ -108,8 +108,14 @@ function waitForCode(state: string, clientId: string): Promise<string> {
 function pageHtml(ok: boolean, err?: string | null): string {
   const msg = ok
     ? "<h2>✅ LinkedIn conectado!</h2><p>Pode fechar esta aba e voltar ao DerivaSocial.</p>"
-    : `<h2>❌ Falha na autorização</h2><p>${err || "código ausente ou state inválido"}</p>`;
+    : `<h2>❌ Falha na autorização</h2><p>${escapeHtml(err || "código ausente ou state inválido")}</p>`;
   return `<!doctype html><html><body style="font-family:sans-serif;background:#010212;color:#e6f6ff;display:grid;place-items:center;height:100vh;text-align:center">${msg}</body></html>`;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character]!);
 }
 
 async function exchangeCode(code: string, clientId: string, clientSecret: string) {
@@ -138,7 +144,7 @@ async function userinfo(accessToken: string) {
 }
 
 // Versão mensal da API nova do LinkedIn (/rest/*) — precisa ter menos de 1 ano.
-const API_VERSION = "202510";
+const API_VERSION = "202609";
 
 /**
  * Publica no perfil como compartilhamento de link. Caminho novo: /rest/posts,

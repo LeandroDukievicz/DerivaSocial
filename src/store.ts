@@ -34,6 +34,7 @@ export interface Post {
 
 // Definido pelo main via init() para gravar em app.getPath("userData").
 let dataFile = path.join(process.cwd(), "data", "posts.json");
+let mutationQueue: Promise<void> = Promise.resolve();
 
 export function init(dataDir: string): void {
   dataFile = path.join(dataDir, "posts.json");
@@ -42,14 +43,30 @@ export function init(dataDir: string): void {
 async function load(): Promise<Record<string, Post>> {
   try {
     return JSON.parse(await fs.readFile(dataFile, "utf8"));
-  } catch {
-    return {};
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    throw error; // não sobrescrever o histórico se o JSON estiver corrompido
   }
 }
 
 async function save(data: Record<string, Post>): Promise<void> {
   await fs.mkdir(path.dirname(dataFile), { recursive: true });
-  await fs.writeFile(dataFile, JSON.stringify(data, null, 2));
+  const temporary = `${dataFile}.${process.pid}.tmp`;
+  try {
+    await fs.writeFile(temporary, JSON.stringify(data, null, 2), { mode: 0o600 });
+    await fs.rename(temporary, dataFile);
+  } catch (error) {
+    await fs.rm(temporary, { force: true }).catch(() => {});
+    throw error;
+  }
+}
+
+// O agendador publica em várias redes em paralelo. Cada operação precisa ler
+// o resultado da anterior antes de salvar, senão uma publicação apaga a outra.
+function mutate<T>(operation: () => Promise<T>): Promise<T> {
+  const result = mutationQueue.then(operation);
+  mutationQueue = result.then(() => {}, () => {});
+  return result;
 }
 
 export async function getPosts(): Promise<Post[]> {
@@ -64,60 +81,70 @@ export async function getPost(guid: string): Promise<Post | null> {
 
 /** Marca um post como publicado numa rede (e o post como "publicado"). */
 export async function markPublished(guid: string, network: string, url?: string): Promise<Post | null> {
-  const data = await load();
-  const post = data[guid];
-  if (!post) return null;
-  post.networks[network] = { status: "published", url };
-  if (post.status !== "lido") post.status = "publicado";
-  await save(data);
-  return post;
+  return mutate(async () => {
+    const data = await load();
+    const post = data[guid];
+    if (!post) return null;
+    post.networks[network] = { status: "published", url };
+    if (post.status !== "lido") post.status = "publicado";
+    await save(data);
+    return post;
+  });
 }
 
 /** Define (URL pública) ou remove (null) a thumb personalizada usada nas publicações. */
 export async function setImageOverride(guid: string, url: string | null): Promise<Post | null> {
-  const data = await load();
-  const post = data[guid];
-  if (!post) return null;
-  post.imageOverride = url ?? undefined;
-  await save(data);
-  return post;
+  return mutate(async () => {
+    const data = await load();
+    const post = data[guid];
+    if (!post) return null;
+    post.imageOverride = url ?? undefined;
+    await save(data);
+    return post;
+  });
 }
 
 /** Marca um post como lido/arquivado. */
 export async function markRead(guid: string): Promise<Post | null> {
-  const data = await load();
-  const post = data[guid];
-  if (!post) return null;
-  post.status = "lido";
-  post.readAt = new Date().toISOString();
-  await save(data);
-  return post;
+  return mutate(async () => {
+    const data = await load();
+    const post = data[guid];
+    if (!post) return null;
+    post.status = "lido";
+    post.readAt = new Date().toISOString();
+    await save(data);
+    return post;
+  });
 }
 
 /** Restaura um post arquivado para a lista ativa. */
 export async function markUnread(guid: string): Promise<Post | null> {
-  const data = await load();
-  const post = data[guid];
-  if (!post) return null;
-  const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
-  post.status = post.schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
-  post.readAt = undefined;
-  await save(data);
-  return post;
+  return mutate(async () => {
+    const data = await load();
+    const post = data[guid];
+    if (!post) return null;
+    const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
+    post.status = post.schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
+    post.readAt = undefined;
+    await save(data);
+    return post;
+  });
 }
 
 /** Define/atualiza/remove o agendamento de um post (e ajusta o status). */
 export async function setSchedule(guid: string, schedule: Schedule | null): Promise<Post | null> {
-  const data = await load();
-  const post = data[guid];
-  if (!post) return null;
-  post.schedule = schedule ?? undefined;
-  const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
-  if (post.status !== "lido") {
-    post.status = schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
-  }
-  await save(data);
-  return post;
+  return mutate(async () => {
+    const data = await load();
+    const post = data[guid];
+    if (!post) return null;
+    post.schedule = schedule ?? undefined;
+    const jaPublicou = Object.values(post.networks || {}).some((n) => n.status === "published");
+    if (post.status !== "lido") {
+      post.status = schedule?.status === "pending" ? "agendado" : jaPublicou ? "publicado" : "novo";
+    }
+    await save(data);
+    return post;
+  });
 }
 
 export async function getStats() {
@@ -140,45 +167,47 @@ const BLOG_URL = "https://devsaderiva.com.br";
 export async function syncUpcoming(
   list: { slug: string; title: string; excerpt: string; image?: string; category?: string; blogScheduledAt: string }[],
 ): Promise<number> {
-  const data = await load();
-  const naAgenda = new Set<string>();
-  let novos = 0;
-  for (const u of list) {
-    const guid = `${BLOG_URL}/posts/${u.slug}`;
-    naAgenda.add(guid);
-    const post = data[guid];
-    if (!post) {
-      data[guid] = {
-        guid,
-        title: u.title,
-        url: guid,
-        image: u.image,
-        summary: (u.excerpt || "").slice(0, 300),
-        category: u.category,
-        discoveredAt: new Date().toISOString(),
-        upcoming: true,
-        blogScheduledAt: u.blogScheduledAt,
-        status: "novo",
-        networks: {},
-      };
-      novos++;
-    } else if (post.upcoming) {
-      // dados editáveis no dashboard podem mudar até a publicação (inclusive o horário)
-      post.title = u.title;
-      post.image = u.image ?? post.image;
-      post.summary = (u.excerpt || post.summary).slice(0, 300);
-      post.category = u.category ?? post.category;
-      post.blogScheduledAt = u.blogScheduledAt;
+  return mutate(async () => {
+    const data = await load();
+    const naAgenda = new Set<string>();
+    let novos = 0;
+    for (const u of list) {
+      const guid = `${BLOG_URL}/posts/${u.slug}`;
+      naAgenda.add(guid);
+      const post = data[guid];
+      if (!post) {
+        data[guid] = {
+          guid,
+          title: u.title,
+          url: guid,
+          image: u.image,
+          summary: (u.excerpt || "").slice(0, 300),
+          category: u.category,
+          discoveredAt: new Date().toISOString(),
+          upcoming: true,
+          blogScheduledAt: u.blogScheduledAt,
+          status: "novo",
+          networks: {},
+        };
+        novos++;
+      } else if (post.upcoming) {
+        // dados editáveis no dashboard podem mudar até a publicação (inclusive o horário)
+        post.title = u.title;
+        post.image = u.image ?? post.image;
+        post.summary = (u.excerpt || post.summary).slice(0, 300);
+        post.category = u.category ?? post.category;
+        post.blogScheduledAt = u.blogScheduledAt;
+      }
     }
-  }
-  // Saiu da agenda do blog sem publicar (cancelado/voltou a rascunho): tira do radar,
-  // a menos que já exista agendamento social — aí fica e o scheduler segura o disparo.
-  for (const p of Object.values(data)) {
-    if (p.upcoming && !naAgenda.has(p.guid) && !p.schedule) delete data[p.guid];
-  }
-  await save(data);
-  if (novos) console.log(`[radar] ${novos} post(s) agendado(s) no blog entraram no painel`);
-  return novos;
+    // Saiu da agenda do blog sem publicar (cancelado/voltou a rascunho): tira do radar,
+    // a menos que já exista agendamento social — aí fica e o scheduler segura o disparo.
+    for (const p of Object.values(data)) {
+      if (p.upcoming && !naAgenda.has(p.guid) && !p.schedule) delete data[p.guid];
+    }
+    await save(data);
+    if (novos) console.log(`[radar] ${novos} post(s) agendado(s) no blog entraram no painel`);
+    return novos;
+  });
 }
 
 /** Bate no RSS, registra posts novos (dedup por guid). Retorna quantos novos. */
@@ -187,42 +216,44 @@ export async function refreshPosts(): Promise<number> {
   if (!res.ok) throw new Error(`RSS HTTP ${res.status}`);
   const xml = await res.text();
   const items = extractItems(xml);
-  const data = await load();
-  let novos = 0;
-  for (const it of items) {
-    if (!it.guid) continue;
-    const existente = data[it.guid];
-    if (existente) {
-      if (existente.upcoming) {
-        // o post do radar entrou no ar — completa com os dados reais do RSS
-        existente.upcoming = false;
-        existente.title = it.title || existente.title;
-        existente.url = it.link || existente.url;
-        existente.image = it.image || existente.image;
-        existente.summary = (it.description || existente.summary).slice(0, 300);
-        existente.category = it.category || existente.category;
-        existente.publishedAt = it.pubDate || undefined;
-        console.log(`[radar] post entrou no ar no blog: ${existente.title}`);
+  return mutate(async () => {
+    const data = await load();
+    let novos = 0;
+    for (const it of items) {
+      if (!it.guid) continue;
+      const existente = data[it.guid];
+      if (existente) {
+        if (existente.upcoming) {
+          // o post do radar entrou no ar — completa com os dados reais do RSS
+          existente.upcoming = false;
+          existente.title = it.title || existente.title;
+          existente.url = it.link || existente.url;
+          existente.image = it.image || existente.image;
+          existente.summary = (it.description || existente.summary).slice(0, 300);
+          existente.category = it.category || existente.category;
+          existente.publishedAt = it.pubDate || undefined;
+          console.log(`[radar] post entrou no ar no blog: ${existente.title}`);
+        }
+        continue;
       }
-      continue;
+      data[it.guid] = {
+        guid: it.guid,
+        title: it.title || "(sem título)",
+        url: it.link,
+        image: it.image || undefined,
+        summary: it.description.slice(0, 300),
+        category: it.category || undefined,
+        publishedAt: it.pubDate || undefined,
+        discoveredAt: new Date().toISOString(),
+        status: "novo",
+        networks: {},
+      };
+      novos++;
     }
-    data[it.guid] = {
-      guid: it.guid,
-      title: it.title || "(sem título)",
-      url: it.link,
-      image: it.image || undefined,
-      summary: it.description.slice(0, 300),
-      category: it.category || undefined,
-      publishedAt: it.pubDate || undefined,
-      discoveredAt: new Date().toISOString(),
-      status: "novo",
-      networks: {},
-    };
-    novos++;
-  }
-  await save(data);
-  console.log(`[rss] ${items.length} itens no feed · ${novos} novo(s)`);
-  return novos;
+    await save(data);
+    console.log(`[rss] ${items.length} itens no feed · ${novos} novo(s)`);
+    return novos;
+  });
 }
 
 // ---------- parser mínimo de RSS 2.0 (sem dependências) ----------

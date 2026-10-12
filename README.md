@@ -14,6 +14,16 @@ Visual no estilo **dark/neon do dashboard LD Studio**.
 - **Sharp** para gerar thumbnails locais reaproveitando a imagem original do post com overlay de texto.
 - Parser de RSS próprio (regex), persistência em JSON, `fetch` nativo do Node.
 
+### Desenvolvimento e testes
+
+```bash
+npm install
+npm test        # compila e executa os testes automatizados locais
+npm run dist:linux  # gera AppImage e .deb para Linux
+```
+
+Os testes cobrem atualizações simultâneas do histórico, proteção contra dados corrompidos, permissões do cofre de credenciais, geração das três proporções de thumbnail e enquadramento para Instagram. Eles não publicam conteúdo em redes sociais.
+
 ### Por que Electron (e não `deno desktop`)
 
 O projeto começou em `deno desktop`, mas ele é **experimental** (lançado em jun/2026, marcado como pré-estável): gera `.AppImage` quebrado, não produz `.exe`/`.msi` único no Windows e a config muda a cada versão. Para termos **instaladores de verdade** agora, migramos para o Electron, que é maduro e tem o melhor ferramental de empacotamento. O _miolo_ (UI + lógica de RSS) foi reaproveitado quase 100%.

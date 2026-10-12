@@ -46,19 +46,33 @@ function sshRun(host: string, cmd: string, stdinFile?: string): Promise<void> {
     let err = "";
     const timer = setTimeout(() => {
       child.kill();
-      reject(new Error("Tempo esgotado enviando a thumb pro servidor."));
+      finish(new Error("Tempo esgotado enviando a thumb pro servidor."));
     }, 30_000);
-    child.stderr.on("data", (d) => (err += d));
-    child.on("error", (e) => {
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
-      reject(e);
+      if (error) reject(error);
+      else resolve();
+    };
+    child.stderr.on("data", (d) => (err += d));
+    child.stdin.on("error", (e) => finish(new Error(`Falha ao enviar a thumb via SSH: ${e.message}`)));
+    child.on("error", (e) => {
+      finish(e);
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
-      if (code === 0) resolve();
-      else reject(new Error(`ssh código ${code}: ${err.slice(0, 300)}`));
+      if (code === 0) finish();
+      else finish(new Error(`ssh código ${code}: ${err.slice(0, 300)}`));
     });
-    if (stdinFile) createReadStream(stdinFile).pipe(child.stdin);
+    if (stdinFile) {
+      const input = createReadStream(stdinFile);
+      input.on("error", (error) => {
+        child.kill();
+        finish(new Error(`Não foi possível ler a thumb: ${error.message}`));
+      });
+      input.pipe(child.stdin);
+    }
     else child.stdin.end();
   });
 }

@@ -46,13 +46,16 @@ interface Secrets {
 
 let file = "";
 let cache: Secrets = { linkedin: {}, instagram: {}, threads: {}, vps: {} };
+let saveQueue: Promise<void> = Promise.resolve();
 
 export async function init(dataDir: string, appRoot: string): Promise<void> {
   file = path.join(dataDir, "secrets.json");
   try {
     const raw = JSON.parse(await fs.readFile(file, "utf8"));
     cache = { linkedin: {}, instagram: {}, threads: {}, vps: {}, ...raw };
-  } catch {
+    await fs.chmod(file, 0o600);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     cache = { linkedin: {}, instagram: {}, threads: {}, vps: {} };
   }
   await importKeysTxt([
@@ -130,6 +133,19 @@ export function vps(): VpsSecrets {
 }
 
 export async function save(): Promise<void> {
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, JSON.stringify(cache, null, 2));
+  const snapshot = JSON.stringify(cache, null, 2);
+  const operation = saveQueue.then(async () => {
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    const temporary = `${file}.${process.pid}.tmp`;
+    try {
+      await fs.writeFile(temporary, snapshot, { mode: 0o600 });
+      await fs.rename(temporary, file);
+      await fs.chmod(file, 0o600);
+    } catch (error) {
+      await fs.rm(temporary, { force: true }).catch(() => {});
+      throw error;
+    }
+  });
+  saveQueue = operation.then(() => {}, () => {});
+  await operation;
 }
