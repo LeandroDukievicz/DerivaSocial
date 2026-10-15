@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="680" viewBox="0 0 600 680">
+  <rect width="600" height="680" fill="#0a1220"/>
+  <image x="30" y="30" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-5-astronauta-deriva.png"/>
+  <image x="314" y="30" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-6-capacete-share.png"/>
+  <image x="30" y="360" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-7-capacete-glitch.png"/>
+  <image x="314" y="360" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-8-astronauta-balao.png"/>
+  <g fill="#eaffff" font-family="sans-serif" font-size="22" text-anchor="middle">
+    <text x="158" y="320">5 — Astronauta à deriva</text>
+    <text x="442" y="320">6 — Capacete octógono + share</text>
+    <text x="158" y="650">7 — Capacete glitch synthwave</text>
+    <text x="442" y="650">8 — Astronauta + balão social</text>
+  </g>
+</svg>

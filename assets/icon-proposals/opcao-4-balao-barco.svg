@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#010212"/>
+      <stop offset="1" stop-color="#081A3A"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00ffff"/>
+      <stop offset="1" stop-color="#6CF2FF"/>
+    </linearGradient>
+    <linearGradient id="pink" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff00cc"/>
+      <stop offset="1" stop-color="#FF4AC4"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- estrelas -->
+  <g fill="#6CF2FF" opacity="0.5">
+    <circle cx="448" cy="96" r="3"/>
+    <circle cx="66" cy="70" r="2.5"/>
+    <circle cx="330" cy="428" r="2.5"/>
+    <circle cx="420" cy="390" r="2"/>
+    <circle cx="60" cy="330" r="2"/>
+  </g>
+
+  <!-- balão de fala -->
+  <path d="M152 104 H360 Q424 104 424 168 V284 Q424 348 360 348 H240 L140 424 L172 348 H152 Q88 348 88 284 V168 Q88 104 152 104 Z"
+        fill="rgba(255,0,204,0.06)" stroke="url(#pink)" stroke-width="13" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- barquinho dentro do balão -->
+  <g filter="url(#glow)">
+    <path d="M256 152 L322 264 L190 264 Z" fill="#eaffff"/>
+    <path d="M160 274 L352 274 L308 324 L204 324 Z" fill="url(#cyan)"/>
+  </g>
+</svg>

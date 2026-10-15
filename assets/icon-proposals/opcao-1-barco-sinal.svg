@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#010212"/>
+      <stop offset="1" stop-color="#081A3A"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00ffff"/>
+      <stop offset="1" stop-color="#6CF2FF"/>
+    </linearGradient>
+    <linearGradient id="pink" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff00cc"/>
+      <stop offset="1" stop-color="#FF4AC4"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- estrelas -->
+  <g fill="#6CF2FF" opacity="0.5">
+    <circle cx="92" cy="96" r="3"/>
+    <circle cx="418" cy="252" r="2.5"/>
+    <circle cx="388" cy="72" r="2"/>
+    <circle cx="76" cy="228" r="2"/>
+    <circle cx="448" cy="330" r="2.5"/>
+  </g>
+
+  <!-- ondas de transmissão saindo do mastro -->
+  <g fill="none" stroke="url(#pink)" stroke-width="14" stroke-linecap="round" filter="url(#glow)">
+    <path d="M225 117 A44 44 0 0 1 287 117"/>
+    <path d="M204 96 A74 74 0 0 1 308 96"/>
+    <path d="M183 75 A103 103 0 0 1 329 75"/>
+  </g>
+  <circle cx="256" cy="146" r="11" fill="url(#pink)" filter="url(#glow)"/>
+
+  <!-- barquinho de papel -->
+  <g filter="url(#glow)">
+    <path d="M256 158 L336 292 L176 292 Z" fill="#eaffff"/>
+    <path d="M132 302 L380 302 L322 368 L190 368 Z" fill="url(#cyan)"/>
+  </g>
+
+  <!-- água -->
+  <path d="M64 396 Q88 380 112 396 T160 396 T208 396 T256 396 T304 396 T352 396 T400 396 T448 396"
+        fill="none" stroke="url(#cyan)" stroke-width="11" stroke-linecap="round" opacity="0.9" filter="url(#glow)"/>
+  <path d="M120 434 Q144 420 168 434 T216 434 T264 434 T312 434 T360 434 T408 434"
+        fill="none" stroke="url(#cyan)" stroke-width="9" stroke-linecap="round" opacity="0.4"/>
+</svg>

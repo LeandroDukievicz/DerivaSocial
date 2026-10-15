@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="680" viewBox="0 0 600 680">
+  <rect width="600" height="680" fill="#0a1220"/>
+  <image x="30" y="30" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-1-barco-sinal.png"/>
+  <image x="314" y="30" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-2-garrafa-mensagem.png"/>
+  <image x="30" y="360" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-3-farol.png"/>
+  <image x="314" y="360" width="256" height="256" xlink:href="file:///home/leandro-dukievicz/Projetos/DerivaSocial/assets/icon-proposals/opcao-4-balao-barco.png"/>
+  <g fill="#eaffff" font-family="sans-serif" font-size="22" text-anchor="middle">
+    <text x="158" y="320">1 — Barco à deriva + sinal</text>
+    <text x="442" y="320">2 — Garrafa com mensagem</text>
+    <text x="158" y="650">3 — Farol social</text>
+    <text x="442" y="650">4 — Balão de fala + barco</text>
+  </g>
+</svg>
