@@ -1,6 +1,6 @@
 // Ajuste de imagem por rede — cada rede tem limites próprios de proporção.
 // Instagram: feed aceita entre 4:5 (0.8) e 1.91:1; fora disso o container é rejeitado.
-// Threads: tolera até 10:1. LinkedIn não sobe imagem (usa o preview do link no blog).
+// Threads: tolera até 10:1.
 // Estratégia: medir a imagem (sharp) e, se estourar o limite da rede, enquadrar num
 // canvas de proporção válida via images.weserv.nl (letterbox com o fundo dark da
 // marca), já convertida para JPEG.

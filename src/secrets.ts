@@ -1,17 +1,8 @@
 // Segredos (client ids, tokens) — salvos em userData/secrets.json, NUNCA no repo.
 // Conveniência de dev: importa credenciais de keys.txt (gitignored), organizado em seções:
-//   linkedin / instagram / threads, com linhas "chave : valor".
+//   instagram / threads / vps, com linhas "chave : valor".
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-
-export interface LinkedInSecrets {
-  clientId?: string;
-  clientSecret?: string;
-  accessToken?: string;
-  expiresAt?: string; // ISO
-  personUrn?: string; // urn:li:person:{sub}
-  name?: string;
-}
 
 export interface InstagramSecrets {
   appId?: string;
@@ -38,25 +29,24 @@ export interface VpsSecrets {
 }
 
 interface Secrets {
-  linkedin: LinkedInSecrets;
   instagram: InstagramSecrets;
   threads: ThreadsSecrets;
   vps: VpsSecrets;
 }
 
 let file = "";
-let cache: Secrets = { linkedin: {}, instagram: {}, threads: {}, vps: {} };
+let cache: Secrets = { instagram: {}, threads: {}, vps: {} };
 let saveQueue: Promise<void> = Promise.resolve();
 
 export async function init(dataDir: string, appRoot: string): Promise<void> {
   file = path.join(dataDir, "secrets.json");
   try {
     const raw = JSON.parse(await fs.readFile(file, "utf8"));
-    cache = { linkedin: {}, instagram: {}, threads: {}, vps: {}, ...raw };
+    cache = { instagram: {}, threads: {}, vps: {}, ...raw };
     await fs.chmod(file, 0o600);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    cache = { linkedin: {}, instagram: {}, threads: {}, vps: {} };
+    cache = { instagram: {}, threads: {}, vps: {} };
   }
   await importKeysTxt([
     path.join(dataDir, "keys.txt"),
@@ -88,20 +78,17 @@ function parseKeys(txt: string): void {
     const i = line.indexOf(":");
     if (i < 0) {
       const s = line.toLowerCase();
-      if (s.startsWith("linkedin")) section = "linkedin";
-      else if (s.startsWith("instagram")) section = "instagram";
+      if (s.startsWith("instagram")) section = "instagram";
       else if (s.startsWith("threads")) section = "threads";
       else if (s.startsWith("vps") || s.startsWith("servidor")) section = "vps";
+      else if (s.startsWith("linkedin")) section = ""; // ignora a seção legada sem misturar credenciais
       continue;
     }
     const key = line.slice(0, i).toLowerCase();
     const value = line.slice(i + 1).trim();
     if (!value) continue;
 
-    if (section === "linkedin") {
-      if (/client\s*id/.test(key)) cache.linkedin.clientId = value;
-      else if (/secret|secreta/.test(key)) cache.linkedin.clientSecret = value;
-    } else if (section === "instagram" || section === "threads") {
+    if (section === "instagram" || section === "threads") {
       const tgt = cache[section as "instagram" | "threads"];
       if (/id/.test(key) && /app/.test(key)) tgt.appId = value;
       else if (/secret|secreta/.test(key)) tgt.appSecret = value;
@@ -119,9 +106,6 @@ function parseKeys(txt: string): void {
   }
 }
 
-export function linkedin(): LinkedInSecrets {
-  return cache.linkedin;
-}
 export function instagram(): InstagramSecrets {
   return cache.instagram;
 }

@@ -1,6 +1,6 @@
 # DerivaSocial
 
-App **desktop** que acompanha os posts do blog [Devs à Deriva](https://devsaderiva.com.br) e **publica nas redes sociais** direto do dashboard — **LinkedIn**, **Instagram** e **Threads** funcionando. Nas próximas fases: métricas de comentários e referral.
+App **desktop** que acompanha os posts do blog [Devs à Deriva](https://devsaderiva.com.br) e **publica nas redes sociais** direto do dashboard — **Instagram** e **Threads** funcionando. Nas próximas fases: métricas de comentários e referral.
 
 Visual no estilo **dark/neon do dashboard LD Studio**.
 
@@ -38,7 +38,6 @@ Electron (app .exe / .AppImage)
 │   ├── src/store.ts                 → ingestão do RSS + persistência (JSON em userData)
 │   ├── src/thumbnail.ts             → geração local de thumbnails com Sharp
 │   ├── src/secrets.ts               → cofre local (userData/secrets.json) + import do keys.txt
-│   ├── src/linkedin.ts              → OAuth (navegador) + publicação no perfil
 │   ├── src/instagram.ts             → publicação no feed + renovação automática do token
 │   ├── src/threads.ts               → publicação no Threads + renovação automática do token
 │   ├── src/upcoming.ts              → radar: posts agendados no blog (SSH + psql no VPS)
@@ -47,13 +46,13 @@ Electron (app .exe / .AppImage)
 │   └── src/preload.ts               → ponte segura (contextBridge) main ⇄ renderer
 └── renderer      (renderer/index.html) → dashboard neon (posts + thumbnails + publicação)
         (renderer/post.html)  → janela de detalhe do post (clique no card abre ampliado)
-        chama o backend via  window.api.*  (getPosts, publish, linkedinConnect, …)
+        chama o backend via  window.api.*  (getPosts, publish, …)
 ```
 
-- **Sem servidor HTTP:** o renderer fala com o backend por **IPC** (`contextIsolation` ligado, sem `nodeIntegration` — seguro). Exceção: durante o OAuth do LinkedIn, um servidor local em `localhost:8000` sobe **apenas** para receber o callback e é fechado em seguida.
+- **Sem servidor HTTP:** o renderer fala com o backend por **IPC** (`contextIsolation` ligado, sem `nodeIntegration` — seguro).
 - **Poll horário:** o main faz `refreshPosts()` ao abrir e a cada 1h (`setInterval`).
 - **Dados:** salvos em `app.getPath("userData")` (`~/.config/DerivaSocial/`): `posts.json` (dedup por `guid` do RSS — nunca duplica), `secrets.json` (tokens) e `thumbnails/`.
-- **Thumbnails:** geradas a partir da imagem do post, com sugestões locais de texto curto. Depois de gerar, dá pra clicar em **"✔ Usar esta thumb no post"**: ela sobe pro VPS (pasta `/var/www/social`, servida em `devsaderiva.com.br/social/` — isolada do blog) e passa a ser usada **no lugar da imagem do RSS** nas publicações (IG/Threads via URL; LinkedIn via upload direto como thumbnail do card). O post ganha o marcador 🖼 e um botão de **voltar pra imagem original**. O blog não é alterado em nada. Thumbs com +60 dias são apagadas do servidor automaticamente (as redes copiam a imagem ao publicar — apagar a origem não afeta posts já publicados).
+- **Thumbnails:** geradas a partir da imagem do post, com sugestões locais de texto curto. Depois de gerar, dá pra clicar em **"✔ Usar esta thumb no post"**: ela sobe pro VPS (pasta `/var/www/social`, servida em `devsaderiva.com.br/social/` — isolada do blog) e passa a ser usada **no lugar da imagem do RSS** nas publicações (Instagram e Threads via URL). O post ganha o marcador 🖼 e um botão de **voltar pra imagem original**. O blog não é alterado em nada. Thumbs com +60 dias são apagadas do servidor automaticamente (as redes copiam a imagem ao publicar — apagar a origem não afeta posts já publicados).
 
 ---
 
@@ -64,10 +63,6 @@ Electron (app .exe / .AppImage)
 As credenciais ficam em `src/keys.txt` (**gitignored**), organizadas por seção. O app importa esse arquivo no start e guarda tudo em `~/.config/DerivaSocial/secrets.json`:
 
 ```
-linkedin
-client id : ...
-primary client secret : ...
-
 instagram
 id do app do instagram : ...
 chave secreta : ...
@@ -85,13 +80,6 @@ host : root@IP_DO_SERVIDOR
 > A seção `vps` liga o **radar de agendados do blog** (abaixo). Sem ela o radar fica desligado — o resto do app funciona normalmente.
 
 > O passo a passo completo para obter cada credencial (apps de desenvolvedor, permissões, testers) está em **[SETUP-REDES.md](SETUP-REDES.md)**.
-
-### LinkedIn ✅
-
-- **Como conecta:** botão **"in Conectar LinkedIn"** no topo do dashboard → abre o navegador → você autoriza → o app captura o callback (`localhost:8000`), troca pelo **token (60 dias)** e descobre seu URN. O botão passa a mostrar seu nome e a validade.
-- **Como publica:** compartilhamento de **link** no **perfil pessoal** (escopo `w_member_social`) pelo endpoint novo **`/rest/posts`** — que aceita **thumbnail personalizada** no card do artigo (a thumb escolhida sobe direto pro LinkedIn via `/rest/images`). Sem thumb escolhida, o LinkedIn monta o preview com a imagem do blog, como sempre. Se o endpoint novo falhar, o app **cai automaticamente pro formato antigo** (`/v2/ugcPosts`) e registra o aviso no log — nunca deixa de publicar por causa da migração.
-- **Decisão registrada:** publicar como *Página* exigiria o produto "Community Management API" (review manual da LinkedIn) — optamos pelo perfil pessoal (sem burocracia e com alcance melhor).
-- **Token expirou?** O botão vira "in ⚠ reconectar" — é só clicar e autorizar de novo.
 
 ### Instagram ✅
 
@@ -115,7 +103,7 @@ host : root@IP_DO_SERVIDOR
 2. **Publicar agora:** escolhe a **rede** no seletor → **🚀 Publicar agora**.
 3. **Ou agendar:** escolhe **data/hora** + marca as **redes** (checkboxes) → **⏰ Agendar** — no horário, o app dispara e publica em **todas as redes selecionadas em paralelo**.
 4. O resultado aparece com o **link da publicação**; o chip da rede fica verde ✓ e o post vira "publicado".
-5. Cada rede é independente — dá pra publicar o mesmo post no LinkedIn, no Instagram **e** no Threads; nunca duplica na mesma rede.
+5. Cada rede é independente — dá pra publicar o mesmo post no Instagram **e** no Threads; nunca duplica na mesma rede.
 
 ### 🔍 Janela de detalhe do post
 
@@ -136,6 +124,7 @@ O painel tem as abas **Ativos / Postados e arquivados** (com contadores):
 - Um scheduler no main process checa **a cada 30s**; no horário, publica nas redes selecionadas **em paralelo** (`Promise.allSettled`) — se uma falhar, as outras seguem, e o resultado por rede fica registrado no painel.
 - **O app precisa estar aberto no horário.** Se estiver fechado, há *catch-up*: o agendamento vencido dispara **assim que o app abrir**.
 - O texto agendado é o mesmo para todas as redes (respeitando os limites de cada uma).
+- Agendamentos antigos que incluem LinkedIn continuam tentando publicar nas redes disponíveis; a tentativa para LinkedIn é registrada como indisponível. O histórico de publicações é preservado.
 
 ### 📅 Radar de agendados do blog
 
@@ -197,7 +186,7 @@ sudo apt install libfuse2      # depois é só dar duplo-clique no .AppImage
 | | Entrega | Status |
 |---|---|---|
 | **M0** | Dashboard lista posts do blog (novo/publicado) + sincronização horária | ✅ |
-| **M1** | Publicar nas redes | **✅ completo — LinkedIn · Instagram · Threads** |
+| **M1** | Publicar nas redes | **✅ completo — Instagram · Threads** |
 | **M2** | Métricas: comentários | — |
 | **M3** | Referral: visitas vindas das redes | precisa de analytics no blog |
 
@@ -212,7 +201,6 @@ src/
   store.ts       # RSS (parser próprio) + persistência JSON
   thumbnail.ts   # composição de thumbnail com imagem original + texto
   secrets.ts     # cofre local de credenciais + parser do keys.txt
-  linkedin.ts    # OAuth + publicação no perfil (ugcPosts)
   instagram.ts   # publicação no feed (container→publish) + refresh do token
   threads.ts     # publicação no Threads (container→publish) + refresh do token
   upcoming.ts    # radar de posts agendados no blog (SSH + psql, host no keys.txt)

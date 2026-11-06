@@ -1,33 +1,12 @@
 # 🔑 Setup das redes (M1) — passo a passo da SUA parte
 
-Ordem escolhida: **LinkedIn primeiro**, depois **Instagram** e **Threads**.
-São **3 cadastros** (o Threads exige um app Meta separado — é um "use case" próprio).
+Configure **Instagram** e **Threads**.
+São **2 cadastros** (o Threads exige um app Meta separado — é um "use case" próprio).
 Guarde cada valor num bloco de notas; nada disso vai pro Git. Passos com 🤝 fazemos juntos (tokens/OAuth).
 
 ---
 
-## 1️⃣ LINKEDIN — ✅ CONCLUÍDO (2026-07-02)
-
-> **Status:** app criado, OAuth conectado e publicação **funcionando no perfil pessoal**.
-> **Decisão registrada:** publicar como **Página** exigiria o produto "Community Management API" (review manual da LinkedIn, dias/semanas). Optamos por **manter no perfil pessoal** — sem burocracia e com alcance melhor no algoritmo. Se um dia quiser a Página: aba Products → Request access em "Community Management API" e me avisar quando aprovar.
-
-**Pré-requisito:** uma Company Page (se não tiver: <https://www.linkedin.com/company/setup/new> — 2 min, grátis).
-
-1. <https://www.linkedin.com/developers/apps> → **Create app**.
-2. Preencher: App name `DerivaSocial` · **LinkedIn Page** (a página acima) · logo (`assets/capacete-de-astronauta-512.png`) · aceitar termos → **Create app**.
-3. Aba **Settings** → **Verify** → abrir a URL gerada → **Verify** (você é admin da página).
-4. Aba **Products** → **Request access** em:
-   - **Share on LinkedIn** (publicar no perfil — `w_member_social`)
-   - **Sign In with LinkedIn using OpenID Connect** (pegar seu URN)
-   > Ambos liberam na hora. (Postar como Página = "Community Management API", passa por review — deixamos pra depois se quiser.)
-5. Aba **Auth** → copiar **Client ID** e **Client Secret** → em **Authorized redirect URLs**, adicionar `http://localhost:8000/callback`.
-
-**📌 Entregar: Client ID + Client Secret.**
-🤝 Depois: OAuth juntos → access token + URN.
-
----
-
-## 2️⃣ META — INSTAGRAM (app 1)
+## 1️⃣ META — INSTAGRAM (app 1)
 
 1. **Instagram profissional:** app IG → perfil → ☰ → Configurações e privacidade → **Tipo de conta e ferramentas** → **Mudar para conta profissional** → **Empresa**.
 2. **Página do Facebook:** ter/criar (<https://www.facebook.com/pages/create>) e **vincular o IG à Página**: <https://business.facebook.com> → Configurações → Contas → **Contas do Instagram** → Conectar.
@@ -42,7 +21,7 @@ Guarde cada valor num bloco de notas; nada disso vai pro Git. Passos com 🤝 fa
 
 ---
 
-## 3️⃣ META — THREADS (app 2, separado) — ✅ CONCLUÍDO (2026-07-05)
+## 2️⃣ META — THREADS (app 2, separado) — ✅ CONCLUÍDO (2026-07-05)
 
 > **Status:** app `derivasocial-threads` criado, tester aceito, token de longa duração gerado no painel
 > (Casos de uso → Acessar a API do Threads → gerador de token) e salvo no `keys.txt`.
@@ -64,9 +43,8 @@ Guarde cada valor num bloco de notas; nada disso vai pro Git. Passos com 🤝 fa
 
 | # | Cadastro | 📌 Entregar |
 |---|---|---|
-| 1 | LinkedIn (`DerivaSocial`) | Client ID + Client Secret |
-| 2 | Meta/Instagram (`derivasocial-instagram`) | App ID + App Secret + @ do IG |
-| 3 | Meta/Threads (`derivasocial-threads`) | App ID + App Secret + tester aceito |
+| 1 | Meta/Instagram (`derivasocial-instagram`) | App ID + App Secret + @ do IG |
+| 2 | Meta/Threads (`derivasocial-threads`) | App ID + App Secret + tester aceito |
 
 - Pode entregar **por partes** — cada rede que chegar, eu já implemento o publisher dela.
 - As telas da Meta mudam de texto com frequência: se algo não bater, me mande um print.

@@ -53,6 +53,57 @@ test('secrets store writes with owner-only permissions and rejects corrupt JSON'
   await assert.rejects(secrets.init(dataDir, appRoot), SyntaxError);
 });
 
+test('legacy LinkedIn credentials do not overwrite Instagram or Threads credentials', async (t) => {
+  const dir = await tempDir(t);
+  const appRoot = path.join(dir, 'app');
+  const dataDir = path.join(dir, 'config');
+  await fs.mkdir(appRoot);
+  await fs.writeFile(path.join(appRoot, 'keys.txt'), [
+    'instagram', 'token de acesso : instagram-token',
+    'linkedin', 'client secret : antigo', 'token de acesso : token-antigo',
+    'threads', 'token de acesso : threads-token',
+  ].join('\n'));
+  const secrets = require('../dist/secrets.js');
+  await secrets.init(dataDir, appRoot);
+  assert.equal(secrets.instagram().accessToken, 'instagram-token');
+  assert.equal(secrets.threads().accessToken, 'threads-token');
+});
+
+test('publication and scheduling reject the removed network', async (t) => {
+  const dir = await tempDir(t);
+  const store = require('../dist/store.js');
+  store.init(dir);
+  await store.syncUpcoming([{ slug: 'ipc', title: 'Teste', excerpt: '', blogScheduledAt: new Date().toISOString() }]);
+  const guid = 'https://devsaderiva.com.br/posts/ipc';
+  const handlers = new Map();
+  const Module = require('node:module');
+  const originalLoad = Module._load;
+  Module._load = function(request, parent, isMain) {
+    if (request === 'electron') return {
+      app: { setName() {}, whenReady: () => new Promise(() => {}), on() {} },
+      BrowserWindow: { getAllWindows: () => [] },
+      ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+      shell: {},
+    };
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    require('../dist/main.js');
+  } finally {
+    Module._load = originalLoad;
+  }
+  assert.equal(handlers.has('linkedin:connect'), false);
+  assert.equal(handlers.has('linkedin:status'), false);
+  await assert.rejects(handlers.get('publish')({}, { guid, network: 'linkedin', text: 'Teste' }), /não está disponível/);
+  await assert.rejects(handlers.get('schedule:set')({}, {
+    guid, at: new Date(Date.now() + 3600000).toISOString(), text: 'Teste', networks: ['linkedin'],
+  }), /Selecione ao menos uma rede/);
+  await handlers.get('schedule:set')({ sender: {} }, {
+    guid, at: new Date(Date.now() + 3600000).toISOString(), text: 'Teste', networks: ['linkedin', 'instagram', 'threads'],
+  });
+  assert.deepEqual((await store.getPost(guid)).schedule.networks, ['instagram', 'threads']);
+});
+
 test('thumbnail generator creates all supported formats with exact dimensions', async (t) => {
   const dir = await tempDir(t);
   const image = await sharp({ create: { width: 640, height: 360, channels: 3, background: '#123456' } }).png().toBuffer();

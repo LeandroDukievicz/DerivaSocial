@@ -4,7 +4,6 @@ import * as path from "node:path";
 import * as store from "./store";
 import * as thumbnail from "./thumbnail";
 import * as secrets from "./secrets";
-import * as linkedin from "./linkedin";
 import * as instagram from "./instagram";
 import * as threads from "./threads";
 import * as upcoming from "./upcoming";
@@ -146,22 +145,20 @@ async function syncRadar(): Promise<void> {
 }
 
 // ---- Redes sociais ----
-const REDES_IMPLEMENTADAS = ["linkedin", "instagram", "threads"];
+const REDES_IMPLEMENTADAS = ["instagram", "threads"];
 
 async function publishToNetwork(post: store.Post, network: string, text: string): Promise<{ url?: string }> {
   // thumb personalizada escolhida pelo usuário substitui a imagem do RSS na publicação
   const p = post.imageOverride ? { ...post, image: post.imageOverride } : post;
-  if (network === "linkedin") return linkedin.publish(p, text);
   if (network === "instagram") return instagram.publish(p, text);
   if (network === "threads") return threads.publish(p, text);
-  throw new Error(`Rede "${network}" ainda não implementada (falta o app/token dela).`);
+  throw new Error(`Rede "${network}" não está disponível para publicação.`);
 }
 
-ipcMain.handle("linkedin:status", () => linkedin.status());
-ipcMain.handle("linkedin:connect", () => linkedin.connect());
 ipcMain.handle("instagram:status", () => instagram.status());
 ipcMain.handle("threads:status", () => threads.status());
 ipcMain.handle("publish", async (event, payload: { guid: string; network: string; text: string }) => {
+  if (!REDES_IMPLEMENTADAS.includes(payload.network)) throw new Error(`Rede "${payload.network}" não está disponível para publicação.`);
   const post = await store.getPost(payload.guid);
   if (!post) throw new Error("Post não encontrado.");
   if (post.upcoming) {

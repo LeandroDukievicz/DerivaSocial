@@ -26,7 +26,7 @@ export async function uploadThumb(localPath: string): Promise<string> {
 
 /**
  * Faxina: apaga do servidor thumbs com mais de 60 dias (só pra liberar espaço).
- * Seguro: IG/Threads/LinkedIn COPIAM a imagem ao publicar — apagar a origem não
+ * Seguro: IG/Threads COPIAM a imagem ao publicar — apagar a origem não
  * afeta nada já publicado. 60 dias dá folga pra qualquer agendamento pendente.
  */
 export async function cleanupOld(): Promise<void> {
