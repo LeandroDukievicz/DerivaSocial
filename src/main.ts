@@ -101,6 +101,16 @@ ipcMain.handle("post:unread", async (event, guid: string) => {
   return r;
 });
 ipcMain.handle("post:open-window", (_event, guid: string) => openPostWindow(guid));
+ipcMain.handle("post:close-window", (event) => {
+  const detail = BrowserWindow.fromWebContents(event.sender);
+  if (!detail || ![...detailWins.values()].includes(detail)) return;
+  detail.close();
+  if (win && !win.isDestroyed()) {
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  }
+});
 ipcMain.handle("post:blog-html", async (_event, guid: string) => {
   const post = await store.getPost(guid);
   if (!post) throw new Error("Post não encontrado.");

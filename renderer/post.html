@@ -114,6 +114,7 @@ a.chip.ok:hover{box-shadow:0 0 14px rgba(52,211,153,.25)}
 <body>
 <div class="wrap">
   <div class="top">
+    <button class="btn" id="back-home" type="button">← Voltar para início</button>
     <img class="logo" src="icon.png" alt="DerivaSocial">
     <div class="brand">
       <h1>DerivaSocial</h1>
@@ -478,6 +479,7 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+document.getElementById("back-home").addEventListener("click", () => window.api.closePostWindow());
 document.getElementById("enois-generate").addEventListener("click", async (event) => {
   const btn = event.currentTarget;
   btn.disabled = true;

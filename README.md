@@ -109,6 +109,8 @@ host : root@IP_DO_SERVIDOR
 
 Clicar no **corpo do card** (fora dos botões) abre o post numa **janela própria e ampliada** (`renderer/post.html`): imagem grande, título/resumo completos, chips das redes (clicáveis quando publicado — abrem a publicação no navegador), **um botão de publicar por rede**, agendamento, gerador de thumbnail, arquivar e "Abrir no blog". Uma janela por post (clicar de novo só foca a existente); publicou/agendou em qualquer janela, as outras **atualizam sozinhas**.
 
+Para retornar ao painel principal, use **← Voltar para início** na janela do post.
+
 O botão **Gerar HTML para o Énóis** busca o artigo completo já publicado no blog e prepara o HTML com capa e estilo para copiar. No blog do Énóis, crie um post, informe o título e cole o HTML no editor HTML/CSS; confira a prévia e publique manualmente. O app avisa se o HTML ultrapassar o limite de 20 mil caracteres do editor. Posts ainda não publicados no blog não podem ser exportados.
 
 ### 🗂 Postados e arquivados
