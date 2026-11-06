@@ -121,12 +121,14 @@ a.chip.ok:hover{box-shadow:0 0 14px rgba(52,211,153,.25)}
     </div>
     <div class="spacer"></div>
     <span class="status" id="status-badge" hidden></span>
+    <button class="btn" id="enois-generate" hidden>Gerar HTML para o Énóis</button>
     <button class="btn" id="open-blog" hidden>Abrir no blog ↗</button>
     <button class="btn" id="toggle-read" hidden></button>
   </div>
   <div id="content"><div class="empty">carregando…</div></div>
 </div>
 
+<script src="enois.js"></script>
 <script>
 const GUID = new URLSearchParams(location.search).get("guid");
 const PUB_NETS = [
@@ -155,6 +157,7 @@ function defaultCopy(p) {
 
 let POST = null;
 let SUGGESTIONS = null; // cache das sugestões de thumbnail (carrega 1x)
+let ENOIS_HTML = "";
 
 const isPub = (id) => POST.networks && POST.networks[id] && POST.networks[id].status === "published";
 
@@ -186,6 +189,17 @@ function heroHtml() {
     "</div>" +
     (p.summary ? '<p class="summary">' + esc(p.summary) + "</p>" : "") +
     '<div class="chips">' + chips + "</div>" + overrideRow;
+}
+
+function enoisSectionHtml() {
+  if (!ENOIS_HTML) return "";
+  return sec("HTML para o Énóis") + '<div class="panel">' +
+    '<div class="hint">No blog do Énóis, crie um post, informe o título e cole o HTML no editor HTML/CSS. Confira a prévia antes de publicar.</div>' +
+    '<div class="field"><label for="enois-html">HTML do post</label><textarea id="enois-html" readonly>' + esc(ENOIS_HTML) + '</textarea></div>' +
+    '<div class="row"><button class="btn go" data-enois-copy type="button">Copiar HTML</button></div>' +
+    '<div class="result" data-enois-result role="status">' +
+      (ENOIS_HTML.length > 20000 ? 'O HTML ultrapassa o limite de 20 mil caracteres do blog do Énóis; reduza o conteúdo antes de publicar.' : 'HTML gerado.') +
+    '</div></div>';
 }
 
 function pubSectionHtml() {
@@ -304,13 +318,17 @@ async function renderAll() {
   blogBtn.hidden = false;
   blogBtn.disabled = up;
   blogBtn.title = up ? "o post ainda não está no ar" : POST.url;
+  const enoisBtn = document.getElementById("enois-generate");
+  enoisBtn.hidden = false;
+  enoisBtn.disabled = up;
+  enoisBtn.title = up ? "o post ainda não está no ar" : "Gera HTML para copiar e publicar manualmente";
 
   const readBtn = document.getElementById("toggle-read");
   readBtn.hidden = false;
   readBtn.textContent = POST.status === "lido" ? "Restaurar" : "Arquivar";
 
   const fields = captureFields();
-  content.innerHTML = heroHtml() + pubSectionHtml() + thumbSectionHtml();
+  content.innerHTML = heroHtml() + enoisSectionHtml() + pubSectionHtml() + thumbSectionHtml();
   restoreFields(fields);
   loadSuggestions();
 }
@@ -412,6 +430,12 @@ document.addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
 
+  if (btn.dataset.enoisCopy !== undefined) {
+    const result = document.querySelector("[data-enois-result]");
+    try { await window.api.copyText(ENOIS_HTML); result.textContent = "HTML copiado."; }
+    catch { const field = document.getElementById("enois-html"); field.focus(); field.select(); result.textContent = "Selecione e copie o HTML manualmente."; }
+    return;
+  }
   if (btn.dataset.publishNet) { await doPublish(btn.dataset.publishNet, btn); return; }
   if (btn.dataset.scheduleGo !== undefined) { await doSchedule(btn); return; }
   if (btn.dataset.scheduleCancel !== undefined) {
@@ -454,6 +478,22 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+document.getElementById("enois-generate").addEventListener("click", async (event) => {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.textContent = "Gerando HTML…";
+  try {
+    const { html, url } = await window.api.getBlogHtml(GUID);
+    ENOIS_HTML = window.createEnoisHtml(html, url);
+    await renderAll();
+    document.getElementById("enois-html")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (err) {
+    alert("Não foi possível gerar o HTML: " + (err.message || String(err)));
+  } finally {
+    btn.disabled = !!POST?.upcoming;
+    btn.textContent = "Gerar HTML para o Énóis";
+  }
+});
 document.getElementById("open-blog").addEventListener("click", () => {
   if (POST && POST.url) window.api.openExternal(POST.url);
 });

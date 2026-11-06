@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld("api", {
   threadsStatus: () => ipcRenderer.invoke("threads:status"),
   publish: (payload: { guid: string; network: string; text: string }) => ipcRenderer.invoke("publish", payload),
   openPostWindow: (guid: string) => ipcRenderer.invoke("post:open-window", guid),
+  getBlogHtml: (guid: string) => ipcRenderer.invoke("post:blog-html", guid),
+  copyText: (text: string) => ipcRenderer.invoke("copy:text", text),
   openExternal: (url: string) => ipcRenderer.invoke("open:external", url),
   schedulePost: (payload: { guid: string; at: string; text: string; networks: string[] }) =>
     ipcRenderer.invoke("schedule:set", payload),

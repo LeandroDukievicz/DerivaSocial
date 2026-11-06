@@ -1,5 +1,5 @@
 // DerivaSocial — main process do Electron.
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, shell } from "electron";
 import * as path from "node:path";
 import * as store from "./store";
 import * as thumbnail from "./thumbnail";
@@ -8,6 +8,7 @@ import * as instagram from "./instagram";
 import * as threads from "./threads";
 import * as upcoming from "./upcoming";
 import * as socialimg from "./socialimg";
+import * as bloghtml from "./bloghtml";
 
 // Mesmo nome em dev e empacotado => mesmo userData (~/.config/DerivaSocial),
 // compartilhando posts.json e secrets.json entre `npm start` e o app instalado.
@@ -100,6 +101,15 @@ ipcMain.handle("post:unread", async (event, guid: string) => {
   return r;
 });
 ipcMain.handle("post:open-window", (_event, guid: string) => openPostWindow(guid));
+ipcMain.handle("post:blog-html", async (_event, guid: string) => {
+  const post = await store.getPost(guid);
+  if (!post) throw new Error("Post não encontrado.");
+  return bloghtml.fetchPostHtml(post);
+});
+ipcMain.handle("copy:text", (_event, text: string) => {
+  if (typeof text !== "string" || text.length > 5_000_000) throw new Error("Texto inválido ou grande demais.");
+  clipboard.writeText(text);
+});
 ipcMain.handle("open:external", (_event, url: string) => {
   if (!/^https:\/\//i.test(url)) throw new Error("Só abro links https.");
   return shell.openExternal(url);
